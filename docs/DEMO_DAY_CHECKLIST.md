@@ -14,8 +14,9 @@ Yêu cầu gốc: `docs/DEMO_DAY_REQUIREMENTS.md`. File này là bản **kiểm 
 
 ```bash
 # 1. Deliverables có mặt?
-for f in README.md docs/architecture.md docs/video-demo.md docs/pitch-deck.pdf \
-         docs/journal.md docs/worklog.md docs/evaluation.md presentation/demo_script.md; do
+for f in README.md docs/architecture.md docs/ai-logs.md docs/video-demo.md docs/pitch-deck.pdf \
+         docs/journal.md docs/worklog.md docs/evaluation.md presentation/demo_script.md \
+         src/requirements.txt; do
   [ -s "$f" ] && echo "OK   $f" || echo "MISS $f"
 done
 
@@ -30,8 +31,10 @@ git ls-files -z | xargs -0 du -k 2>/dev/null | awk '$1>10240{print "BIG", $2}'
 git grep -nE '^\s*except\s*:|except Exception:\s*(pass|return)' -- 'src' 'tests' || echo "no bare except"
 
 # 5. Test + CI + Docker?
-ls tests .github/workflows Dockerfile docker-compose.yml 2>&1 | head -20
-python -m pytest -q 2>&1 | tail -15
+ls src/tests .github/workflows Dockerfile docker-compose.yml 2>&1 | head -20
+# Cần venv: python3 -m venv .venv && .venv/bin/pip install -r src/requirements.txt -r src/requirements-lab9.txt
+(cd src && python -m pytest -q 2>&1 | tail -15)   # marker `student` bị loại mặc định (pytest.ini)
+# Tái tạo AI logs: (cd src && python -m lab9.ai_logs > ../docs/ai-logs.md)
 
 # 6. Lịch sử commit đều đặn?
 git log --format='%ad' --date=short | sort | uniq -c
@@ -39,10 +42,10 @@ git log --format='%ad' --date=short | sort | uniq -c
 
 ## A. 10 deliverables
 
-- [ ] 1. Source code: repo push được, `.gitignore` đúng, deps pin version, có type hints + docstrings, ≥1 file test
+- [ ] 1. Source code: repo push được, `.gitignore` đúng, deps pin version (`src/requirements*.txt`), có type hints + docstrings, ≥1 file test (`src/tests/`)
 - [ ] 2. README: tên, mô tả, screenshot/GIF, cài đặt, cách chạy, cấu trúc thư mục, tech stack, tên env vars (không giá trị), API docs, team, Live URL
 - [ ] 3. Architecture diagram: đủ Frontend/Backend/Agent/DB/External API + mũi tên data flow, PNG/SVG hoặc Mermaid, có mô tả ngắn
-- [ ] 4. AI logs: LangSmith URL hoặc screenshot, 5-10 trace có input, LLM call, retrieval, output
+- [ ] 4. AI logs: `docs/ai-logs.md` (repo dùng MockLLM nên không có LangSmith; trace do harness ghi), 5-10 trace có input, tool/model event, output, ledger so với nhãn. Nếu sau này dùng LLM thật, bổ sung LangSmith URL hoặc screenshot
 - [ ] 5. Live URL: HTTP 200 (`curl -sI <url>`), `/health` OK, ghi trong README, không sleep
 - [ ] 6. Video demo: 3-5 phút, YouTube unlisted, link trong `docs/video-demo.md`, có team intro + use case chính + edge case
 - [ ] 7. Pitch deck: đúng 10 slide, **PDF** tại `docs/pitch-deck.pdf`, đã tập ≥3 lần
