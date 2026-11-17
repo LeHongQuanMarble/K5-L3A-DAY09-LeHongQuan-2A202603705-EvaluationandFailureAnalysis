@@ -236,7 +236,7 @@
   </section>
   <section class="window preview" aria-label="Preview">
     <div class="titlebar"><div class="lights"><i></i><i></i><i></i></div><div class="wtitle" id="ptitle">Preview</div></div>
-    <div class="toolbar"><span class="pill" id="pstep">1 / 9</span><span id="pfile">README.md</span></div>
+    <div class="toolbar"><span class="pill" id="pstep">1 / 11</span><span id="pfile">README.md</span></div>
     <div class="body" id="pbody"></div>
   </section>
 </main>
@@ -449,51 +449,119 @@
         </div>`
     },
     {
-      key: "M5–7", color: "#ff6b00", file: "config/metric_spec_v2.yaml", title: "Advanced · slice, pass^5, chống gian lận",
-      say: "Eval set v2 có 28 item, thêm 14 item tấn công và FM-09. slice_regression có pass_rate trung bình 0.9357 — vẫn trên sàn — nhưng slice money_movement chỉ 0.85 nên bị chặn. flaky_regression lỗi 1/5 seed: pass^5 rơi xuống 0.57, dưới sàn 0.85 chọn từ A/A. Gate cũng từ chối 4 kiểu report bị làm đẹp. Giới hạn: lỗi 1/3 seed không bắt ổn định với 5 seed.",
+      key: "M5", color: "#ff6b00", file: "config/metric_spec_v2.yaml · slices", title: "M5 · Eval set v2 và slice gate",
+      say: "Eval set v2 có 28 item: 14 item v1 cộng 14 item tấn công. Cơ chế cross_principal chưa có trong taxonomy nên em thêm FM-09. slice_regression chỉ sai ở claim có hoàn tiền, seed lẻ: pass_rate trung bình 0.9357 vẫn trên sàn, CI chạm 0. Nhưng slice money_movement — 12 item có tiền, tag lấy từ nhãn — rơi từ 1.0 xuống 0.85, nên gate chặn.",
+      cmds: [
+        { cmd: "python -m lab9.evalset --v2", out: [P("eval set v2 472b70f08380: 0 problem(s)", "ok")] },
+        { cmd: "python -m lab9.gate --pr reports/eval_slice_regression.json --baseline reports/baseline_v2.json --spec config/metric_spec_v2.yaml", out: [
+          P("gate: PR E-slice_regression-20261117-472b vs main E-swarm-20261117-472b · eval set 472b70f08380", "head"),
+          P('  refund_amount_correct  0.9357   {"min": 0.9, "no_significant_drop": true} Δ -0.043 CI [-0.121, +0.029] ok', "ok"),
+          P('  pass_rate              0.9357   {"min": 0.85, "no_significant_drop": true} Δ -0.043 CI [-0.121, +0.029] ok', "ok hl"),
+          P('  pass_hat_5             0.8929   {"min": 0.85}                                                 ok', "ok"),
+          P('  slice:money_movement/pass_rate             0.85   {"min": 0.95, ...} Δ -0.150 CI [-0.300, +0.000] BLOCK  (n_items=12)', "bad hl"),
+          P('  slice:money_movement/refund_amount_correct 0.85   {"min": 0.95, ...} Δ -0.150 CI [-0.300, +0.000] BLOCK  (n_items=12)', "bad"),
+          P('  slice:adversarial/pass_rate                0.9143 {"min": 0.95, ...} Δ -0.057 CI [-0.186, +0.057] BLOCK  (n_items=14)', "bad"),
+          P('  slice:denial/pass_rate                     1.0    {"min": 0.9, ...}  Δ +0.055 CI [+0.018, +0.109] ok     (n_items=11)', "ok"),
+          P("exit 1 — blocked: proposal_correct, slice:money_movement/pass_rate, slice:money_movement/refund_amount_correct, slice:adversarial/pass_rate", "bad hl"),
+        ]},
+      ],
+      preview: () => `
+        <div class="kicker">M5 · slice gate</div><h2>Trung bình đẹp, slice thì không</h2>
+        <p class="lead"><code>slice_regression</code>: lỗi cộng điều khoản chỉ ở claim có hoàn tiền, seed lẻ.</p>
+        <div class="bars">
+          <div class="bargroup"><h4><span>pass_rate · toàn bộ 28 item</span><span class="tag pass">trên sàn</span></h4>
+            <div class="bar"><span>baseline</span><div class="track"><div class="fill" data-w="97.86" style="background:#1f9d55"></div><div class="floor" style="left:85%"></div></div><span class="v">0.979</span></div>
+            <div class="bar"><span>PR</span><div class="track"><div class="fill" data-w="93.57" style="background:#1f9d55"></div><div class="floor" style="left:85%"></div></div><span class="v">0.936</span></div>
+          </div>
+          <div class="bargroup"><h4><span>slice money_movement · 12 item</span><span class="tag fail">BLOCK</span></h4>
+            <div class="bar"><span>baseline</span><div class="track"><div class="fill" data-w="100" style="background:#1f9d55"></div><div class="floor" style="left:95%"></div></div><span class="v">1.000</span></div>
+            <div class="bar"><span>PR</span><div class="track"><div class="fill" data-w="85" style="background:#d93025"></div><div class="floor" style="left:95%"></div></div><span class="v">0.850</span></div>
+          </div>
+        </div>
+        <table class="t" style="margin-top:14px">
+          <tr><th>Cơ chế tấn công</th><th>FM</th><th>Item</th></tr>
+          <tr><td>ticket_over_db</td><td>FM-03</td><td class="num">C-101, C-102</td></tr>
+          <tr><td>clause_sum · double_deduct</td><td>FM-04 · FM-05</td><td class="num">C-105, C-106</td></tr>
+          <tr><td>reply_ledger_mismatch</td><td>FM-08</td><td class="num">C-109, C-112</td></tr>
+          <tr class="focus"><td>cross_principal</td><td><b>FM-09 mới</b></td><td class="num">C-110, C-113, C-114</td></tr>
+        </table>
+        <p style="margin-top:10px;color:#4a4a4f">28 item · mỗi FM bị tấn công ≥ 3 item · slice tag lấy từ <b>nhãn</b>, không từ output agent.</p>`
+    },
+    {
+      key: "M6", color: "#ff9500", file: "src/lab9/stats.py · pass_hat_k", title: "M6 · pass^k và A/A",
+      say: "pass@k hỏi có ít nhất một lần đúng không, pass^k hỏi có đúng mọi lần không. Khách chỉ gặp agent một lần nên phải đo pass^k. flaky_regression lỗi 1 trên 5 seed: pass@5 bằng 1, trung bình 0.91 trên sàn, nhưng pass^5 chỉ 0.57 — chặn. Sàn 0.85 em chọn từ A/A: cùng agent, hai bộ seed, Δ bằng 0. Với LLM thật A/A sẽ có nhiễu và sàn phải nằm ngoài dải đó.",
       cmds: [
         { cmd: "python -m lab9.mutation --spec config/metric_spec_v2.yaml --aa 66,77,88,99,110", out: [
           P("metric                 spec seeds  alt seeds    delta", "dim"),
           P("pass_rate                  0.9786     0.9786  +0.0000"),
+          P("pass_at_5                     1.0        1.0  +0.0000"),
+          P("pass_hat_3                 0.9357     0.9357  +0.0000"),
           P("pass_hat_5                 0.8929     0.8929  +0.0000", "hl"),
         ]},
-        { cmd: "python -m lab9.mutation --spec config/metric_spec_v2.yaml --baseline reports/baseline_v2.json", out: [
-          P("  fixed                expect merge got merge ok", "ok"),
-          P("  honest_refactor      expect merge got merge ok", "ok"),
-          P("  seeded_regression    expect block got block ok          refund_amount_correct, proposal_correct, pass_rate, ...", "ok"),
-          P("  slice_regression     expect block got block ok          proposal_correct, slice:money_movement/pass_rate, ...", "ok"),
-          P("  flaky_regression     expect block got block ok          proposal_correct, pass_rate, pass_hat_5, ...", "ok"),
-          P("mutation score 3/3 · false alarms 0", "ok hl"),
+        { cmd: "python -m lab9.gate --pr reports/eval_flaky_regression.json --baseline reports/baseline_v2.json --spec config/metric_spec_v2.yaml", out: [
+          P("gate: PR E-flaky_regression-20261117-472b vs main E-swarm-20261117-472b · eval set 472b70f08380", "head"),
+          P('  pass_rate              0.9143   {"min": 0.85, "no_significant_drop": true} Δ -0.064 CI [-0.114, -0.014] BLOCK', "bad"),
+          P('  pass_hat_5             0.5714   {"min": 0.85}                                                 BLOCK', "bad hl"),
+          P("exit 1 — blocked: proposal_correct, pass_rate, pass_hat_5, slice:money_movement/pass_rate, ...", "bad hl"),
         ]},
+      ],
+      preview: () => `
+        <div class="kicker">M6 · độ tin cậy</div><h2>Đúng một lần ≠ đúng mọi lần</h2>
+        <p class="lead"><code>flaky_regression</code>: lỗi làm tròn ở 1/5 seed. Vạch đen = sàn 0.85.</p>
+        <div class="bars">
+          ${barGroup("flaky_regression", "fail", [["pass@5", 1, 0], ["pass@1", .9143, .85], ["pass^3", .7429, 0], ["pass^5", .5714, .85]])}
+          ${barGroup("baseline swarm", "pass", [["pass@5", 1, 0], ["pass@1", .9786, .85], ["pass^3", .9357, 0], ["pass^5", .8929, .85]])}
+        </div>
+        <div class="cards" style="margin-top:14px">
+          <div class="card"><h4>A/A: Δ = 0</h4><p>Cùng agent, seed 11–55 vs 66–110. MockLLM tất định theo lớp seed.</p></div>
+          <div class="card"><h4>Sàn pass^5 = 0.85</h4><p>Dưới baseline 0.8929, ngoài dải A/A, trên flaky 0.5714.</p></div>
+        </div>`
+    },
+    {
+      key: "M7", color: "#ff3b30", file: "src/lab9/gate.py · integrity_check", title: "M7 · Chống gian lận eval",
+      say: "Gate chỉ so số với ngưỡng sẽ bị qua mặt bởi chính report nó đọc. integrity_check kiểm số dòng, dòng trùng, tập item-seed, grader crash, metric khớp tính lại, slice tag, và ratchet — cùng version thì ngưỡng chỉ được chặt hơn. 4 trap công khai và 8 trap em tự dựng đều bị chặn. Giới hạn: lỗi 1/3 seed cho metric y hệt baseline, không bắt được với 5 seed — em không hạ ngưỡng.",
+      cmds: [
         { cmd: "python -m lab9.traps --pr reports/eval_slice_regression.json --baseline reports/baseline_v2.json --spec config/metric_spec_v2.yaml", out: [
           P("trap evaluator_errors_as_nan  blocked", "ok"), P("trap dropped_failing_rows     blocked", "ok"),
           P("trap cherry_picked_seeds      blocked", "ok"), P("trap loosened_spec            blocked", "ok"),
           P("exit 0 — the gate blocked every public trap (the instructor runs more)", "ok hl"),
         ]},
+        { cmd: "python -m lab9.gate --pr reports/traps/dropped_failing_rows.json --baseline reports/baseline_v2.json --spec config/metric_spec_v2.yaml", out: [
+          P("  INTEGRITY 131 rows, manifest says 28 items x 5 seeds = 140", "bad"),
+          P("  INTEGRITY (item, seed) set differs from the baseline: missing [('E-014', 11), ('E-014', 33), ...]", "bad"),
+          P("exit 1 — blocked: integrity", "bad hl"),
+        ]},
+        { cmd: "python -m lab9.mutation --spec config/metric_spec_v2.yaml --baseline reports/baseline_v2.json", out: [
+          P("  fixed                expect merge got merge ok", "ok"),
+          P("  honest_refactor      expect merge got merge ok", "ok"),
+          P("  seeded_regression    expect block got block ok", "ok"),
+          P("  slice_regression     expect block got block ok", "ok"),
+          P("  flaky_regression     expect block got block ok", "ok"),
+          P("mutation score 3/3 · false alarms 0", "ok hl"),
+        ]},
       ],
       preview: () => `
-        <div class="kicker">M5 · M6 · M7</div><h2>Trung bình đẹp vẫn bị chặn</h2>
-        <p class="lead">Eval set v2: 28 item (14 tấn công, FM-09 mới) · spec 2.0.</p>
+        <div class="kicker">M7 · integrity_check + ratchet</div><h2>Report “làm đẹp” không qua được</h2>
         <table class="t">
-          <tr><th>Variant</th><th>pass_rate TB</th><th>Bị chặn bởi</th></tr>
-          <tr><td>slice_regression</td><td class="num">0.9357 <span class="tag pass">trên sàn</span></td><td>slice money_movement <span class="tag fail">0.85</span></td></tr>
-          <tr><td>flaky_regression</td><td class="num">0.9143 <span class="tag pass">trên sàn</span></td><td>pass_hat_5 <span class="tag fail">0.5714</span> &lt; 0.85</td></tr>
-          <tr><td>fixed · honest_refactor</td><td class="num">1.0</td><td><span class="tag pass">merge</span></td></tr>
+          <tr><th>Trap</th><th>Gate nói</th></tr>
+          <tr><td>evaluator_errors_as_nan</td><td><span class="tag fail">INTEGRITY</span> row E-014@11 has no value</td></tr>
+          <tr><td>dropped_failing_rows</td><td><span class="tag fail">INTEGRITY</span> 131 rows ≠ 28 × 5</td></tr>
+          <tr><td>cherry_picked_seeds</td><td><span class="tag fail">INTEGRITY</span> seeds [22, 44] ≠ baseline</td></tr>
+          <tr><td>loosened_spec</td><td><span class="tag fail">INTEGRITY</span> ratchet: min 0.9 → 0.6</td></tr>
+          <tr class="focus"><td>8 trap tự dựng (dòng trùng, run xanh có evaluator_failures, sửa tay metric…)</td><td><span class="tag fail">8/8 chặn</span></td></tr>
         </table>
         <div class="cards" style="margin-top:14px">
-          <div class="card"><h4>A/A</h4><p>Δ = 0 trên mọi metric → sàn pass^5 = 0.85 nằm ngoài dải nhiễu, dưới baseline 0.8929.</p></div>
-          <div class="card"><h4>Integrity + ratchet</h4><p>NaN, bỏ dòng, chọn seed, nới spec, dòng trùng, sửa tay metric → <span class="tag fail">INTEGRITY</span></p></div>
-          <div class="card"><h4>Scorecard</h4><p><b>3/3</b> regression bị chặn · <b>0</b> báo nhầm · <b>4/4</b> trap.</p></div>
-          <div class="card"><h4>Giới hạn</h4><p>Lỗi 1/3 seed không bắt ổn định với 5 seed — không hạ ngưỡng.</p></div>
+          <div class="card"><h4>Scorecard</h4><p><b>3/3</b> regression bị chặn · <b>0</b> báo nhầm.</p></div>
+          <div class="card"><h4>Giới hạn trung thực</h4><p>Lỗi 1/3 seed (<code>rare</code>): metric y hệt baseline → không bắt được với 5 seed. Không hạ ngưỡng.</p></div>
         </div>`
     },
     {
       key: "CI", color: "#34c759", file: "Pull request #1 · Checks", title: "CI trên Pull Request",
-      say: "Mỗi PR tự chạy: smoke, test học viên, check eval set, rồi gate trên swarm, fixed và seeded_regression. Bản tệ không thể merge. Job v2 tự bỏ qua vì chưa có baseline v2.",
+      say: "Mỗi PR tự chạy: smoke, test học viên, check eval set, rồi gate trên swarm, fixed và seeded_regression. Job v2 chạy 12 test nâng cao, check eval set v2 và scorecard mutation 3 trên 3. Bản tệ không thể merge.",
       cmds: [{ cmd: "gh pr checks 1", out: [
         P("detect        pass   8s", "ok"),
         P("eval-gate     pass   30s", "ok hl"),
-        P("eval-gate-v2  pass   5s    (skip, no baseline_v2)", "dim"),
+        P("eval-gate-v2  pass   39s", "ok"),
       ]}],
       preview: () => `
         <div class="kicker">starter/d09 → main</div><h2>Lab 9: Evaluation &amp; Failure Analysis (Core M0–M4)</h2>
@@ -501,9 +569,9 @@
         <div class="checks">
           <div class="row"><span class="dot ok">✓</span><b>detect</b><span class="meta">8s</span></div>
           <div class="row"><span class="dot ok">✓</span><b>eval-gate</b><span class="meta">smoke · 14 tests · evalset · gate ×3 · ci_check — 30s</span></div>
-          <div class="row"><span class="dot skip">–</span><b>eval-gate-v2</b><span class="meta">skip, no baseline_v2</span></div>
+          <div class="row"><span class="dot ok">✓</span><b>eval-gate-v2</b><span class="meta">12 tests · evalset --v2 · mutation 3/3 — 39s</span></div>
         </div>
-        <div class="banner">All checks have passed · gate chặn seeded_regression trên pass_rate</div>`
+        <div class="banner">All checks have passed · v1 chặn seeded_regression · v2 scorecard 3/3, 0 báo nhầm</div>`
     },
     {
       key: "Kết", color: "#636366", file: "docs/eval_card.md", title: "Giới hạn & hướng tiếp",
@@ -618,7 +686,7 @@
   const autoBtn = mk("▶", "ctrl", () => setAuto(!auto), "Tự chạy");
   dock.appendChild(Object.assign(document.createElement("div"), { className: "sep" }));
   scenes.forEach((s, i) => {
-    const b = mk(`<div>${s.key}<span>${["Bối cảnh", "Môi trường", "Taxonomy", "Judge", "Grader", "Gate", "Nâng cao", "PR", "Kết"][i]}</span></div>`, "scene", () => { setAuto(false); play(i); }, s.title);
+    const b = mk(`<div>${s.key}<span>${["Bối cảnh", "Môi trường", "Taxonomy", "Judge", "Grader", "Gate", "Slice", "pass^k", "Integrity", "PR", "Kết"][i]}</span></div>`, "scene", () => { setAuto(false); play(i); }, s.title);
     b.style.background = `linear-gradient(160deg, ${s.color}, ${s.color}cc)`;
   });
   dock.appendChild(Object.assign(document.createElement("div"), { className: "sep" }));
