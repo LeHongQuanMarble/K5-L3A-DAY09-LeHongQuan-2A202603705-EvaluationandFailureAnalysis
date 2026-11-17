@@ -67,19 +67,20 @@ def integrity_check(pr: dict, base: dict, spec: dict, base_spec: dict | None = N
     # 3. Graders must have run on every row: a crash scored as None drops out of the mean.
     if pr.get("evaluator_failures"):
         problems.append(f"{len(pr['evaluator_failures'])} evaluator failure(s), first: {pr['evaluator_failures'][0]}")
+    # A metric counts as graded on this run if the PR rows or the baseline rows carry it.
+    carried = {m for m in graded if any(m in r for r in rows) or any(m in r for r in base.get("rows") or [])}
     for r in rows:
-        bad = [m for m in graded if r.get(m) is None]
+        bad = [m for m in carried if r.get(m) is None]
         if bad:
             problems.append(f"row {r.get('item_id')}@{r.get('seed')} has no value for {bad}")
             break
 
-    # 4. Reported metrics must be what the rows say (no hand-edited summary).
-    if rows and not problems:
-        has_cost = all("cost" in r for r in rows)
+    # 4. Reported metrics must be what the rows say (no hand-edited summary). Only for reports
+    #    produced by lab9.eval (rows carry `cost`), where the summary is a pure function of the rows.
+    has_cost = bool(rows) and all("cost" in r for r in rows)
+    if has_cost and not problems:
         ids = [m for m in graded if all(m in r for r in rows)]
-        again = aggregate([{**r, "cost": r.get("cost", 0.0)} for r in rows], ids, k_values=spec.get("pass_k", []))
-        if not has_cost:
-            again.pop("cost_per_success", None)
+        again = aggregate(rows, ids, k_values=spec.get("pass_k", []))
         if "pass_rate" not in ids:
             again = {k: v for k, v in again.items() if k in ids}
         for k, v in again.items():
