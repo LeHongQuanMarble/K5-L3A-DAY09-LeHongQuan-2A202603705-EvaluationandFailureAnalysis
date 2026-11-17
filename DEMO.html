@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 9 Demo</title>
+<style>
+  :root {
+    --menubar: rgba(246, 246, 248, .72);
+    --win: #fbfbfd;
+    --win-border: rgba(0, 0, 0, .12);
+    --title: #ececee;
+    --text: #1d1d1f;
+    --muted: #6e6e73;
+    --term-bg: #1e1f24;
+    --term-text: #d7dae0;
+    --green: #30d158;
+    --red: #ff453a;
+    --amber: #ffd60a;
+    --blue: #0a84ff;
+    --cyan: #64d2ff;
+    --purple: #bf5af2;
+    --pass: #1f9d55;
+    --fail: #d93025;
+    --note: #fff7a8;
+    --note-text: #3a3300;
+    --shadow: 0 22px 60px rgba(0, 0, 0, .35), 0 0 0 .5px rgba(0, 0, 0, .25);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font: 13px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    color: var(--text);
+    background: #2b2350;
+    overflow: hidden;
+  }
+  .desktop {
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(1200px 700px at 15% 10%, #ff8a5b 0%, transparent 55%),
+      radial-gradient(1000px 800px at 85% 20%, #7a5cff 0%, transparent 60%),
+      radial-gradient(900px 700px at 50% 100%, #1aa3a3 0%, transparent 60%),
+      linear-gradient(160deg, #2a1f5c, #12324a);
+  }
+
+  /* ---------- menu bar ---------- */
+  .menubar {
+    position: fixed; top: 0; left: 0; right: 0; height: 28px; z-index: 50;
+    display: flex; align-items: center; gap: 18px; padding: 0 14px;
+    background: var(--menubar); backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    font-size: 13px;
+  }
+  .menubar .logo { font-size: 15px; }
+  .menubar b { font-weight: 700; }
+  .menubar .right { margin-left: auto; display: flex; gap: 16px; align-items: center; color: #222; }
+  .menubar .spacer-sm { display: inline; }
+
+  /* ---------- windows ---------- */
+  .stage {
+    position: fixed; top: 44px; left: 24px; right: 24px; bottom: 104px;
+    display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 22px;
+  }
+  .window {
+    background: var(--win); border-radius: 12px; box-shadow: var(--shadow);
+    display: flex; flex-direction: column; overflow: hidden; min-height: 0;
+  }
+  .titlebar {
+    height: 36px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 12px;
+    background: linear-gradient(#f2f2f4, #e6e6e9); border-bottom: 1px solid var(--win-border);
+    position: relative;
+  }
+  .lights { display: flex; gap: 8px; }
+  .lights i { width: 12px; height: 12px; border-radius: 50%; display: block; box-shadow: inset 0 0 0 .5px rgba(0,0,0,.2); }
+  .lights i:nth-child(1) { background: #ff5f57; }
+  .lights i:nth-child(2) { background: #febc2e; }
+  .lights i:nth-child(3) { background: #28c840; }
+  .titlebar .wtitle {
+    position: absolute; left: 0; right: 0; text-align: center; pointer-events: none;
+    font-weight: 600; color: #4a4a4f; font-size: 13px;
+  }
+
+  /* terminal */
+  .terminal .titlebar { background: linear-gradient(#3a3b40, #2e2f34); border-bottom-color: #000; }
+  .terminal .titlebar .wtitle { color: #b9bcc4; }
+  .term {
+    flex: 1; min-height: 0; overflow-y: auto; background: var(--term-bg); color: var(--term-text);
+    font: 12.5px/1.5 "SF Mono", ui-monospace, Menlo, Consolas, "Liberation Mono", monospace;
+    padding: 14px 16px 18px; white-space: pre-wrap; word-break: break-word;
+  }
+  .term .ln { min-height: 1.5em; }
+  .term .prompt { color: var(--green); }
+  .term .path { color: var(--cyan); }
+  .term .cmd { color: #fff; }
+  .term .ok { color: var(--green); }
+  .term .bad { color: var(--red); font-weight: 600; }
+  .term .warn { color: var(--amber); }
+  .term .hl { background: rgba(255, 214, 10, .16); color: #ffe58a; border-radius: 3px; }
+  .term .dim { color: #8b8f99; }
+  .term .head { color: var(--purple); font-weight: 600; }
+  .cursor { display: inline-block; width: 8px; height: 1.1em; vertical-align: -2px; background: #d7dae0; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* preview */
+  .preview .body { flex: 1; min-height: 0; overflow-y: auto; padding: 22px 24px 26px; }
+  .preview .toolbar {
+    flex: none; display: flex; gap: 8px; align-items: center; padding: 8px 12px;
+    border-bottom: 1px solid var(--win-border); background: #f6f6f8; color: var(--muted); font-size: 12px;
+  }
+  .pill { background: #e9e9ee; border-radius: 6px; padding: 2px 8px; color: #3a3a3f; font-weight: 600; }
+  .kicker { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .preview h2 { margin: 4px 0 6px; font-size: 22px; letter-spacing: -.01em; }
+  .preview p.lead { margin: 0 0 18px; color: #3a3a3f; font-size: 14px; }
+  .fade-in { animation: fade .45s ease both; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* blocks used in preview */
+  .flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0 16px; }
+  .flow .node { background: #fff; border: 1px solid #dcdce2; border-radius: 10px; padding: 10px 12px; font-weight: 600; }
+  .flow .node small { display: block; font-weight: 500; color: var(--muted); font-size: 11.5px; }
+  .flow .arrow { color: #a0a0a8; font-size: 18px; }
+  .flow .node.accent { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(10,132,255,.15); }
+  .cards { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+  .card { background: #fff; border: 1px solid #e3e3e8; border-radius: 10px; padding: 12px 14px; }
+  .card h4 { margin: 0 0 4px; font-size: 13px; }
+  .card p { margin: 0; color: #4a4a4f; font-size: 12.5px; }
+  .tag { display: inline-block; border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 700; }
+  .tag.pass { background: #e3f5ea; color: var(--pass); }
+  .tag.fail { background: #fde7e5; color: var(--fail); }
+  .tag.neutral { background: #eef0f4; color: #4a4f5c; }
+
+  table.t { width: 100%; border-collapse: collapse; font-size: 12.5px; background: #fff; border-radius: 10px; overflow: hidden; border: 1px solid #e3e3e8; }
+  table.t th, table.t td { padding: 7px 10px; text-align: left; border-bottom: 1px solid #efeff3; }
+  table.t th { background: #f6f6f9; font-weight: 600; color: #4a4a4f; }
+  table.t tr:last-child td { border-bottom: 0; }
+  table.t td.num { font-variant-numeric: tabular-nums; }
+  table.t tr.focus td { background: #fff8db; }
+
+  .timeline { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .timeline .col h4 { margin: 0 0 8px; font-size: 13px; display: flex; gap: 8px; align-items: center; }
+  .ev { display: flex; gap: 8px; align-items: flex-start; background: #fff; border: 1px solid #e3e3e8; border-radius: 8px; padding: 7px 9px; margin-bottom: 6px; font-size: 12px; }
+  .ev .n { flex: none; width: 20px; height: 20px; border-radius: 50%; background: #eef0f4; display: grid; place-items: center; font-weight: 700; font-size: 11px; color: #4a4f5c; }
+  .ev code { font: 11.5px "SF Mono", ui-monospace, Menlo, monospace; color: #3a3a3f; }
+  .ev.wrong { border-color: var(--fail); background: #fff1ef; box-shadow: 0 0 0 3px rgba(217,48,37,.12); }
+  .ev.wrong .n { background: var(--fail); color: #fff; }
+  .ev.same .n { background: #e3f5ea; color: var(--pass); }
+
+  .bars { display: grid; gap: 14px; }
+  .bargroup h4 { margin: 0 0 6px; font-size: 13px; display: flex; justify-content: space-between; }
+  .bar { display: grid; grid-template-columns: 74px 1fr 46px; align-items: center; gap: 8px; margin: 4px 0; font-size: 12px; }
+  .bar .track { position: relative; height: 12px; background: #eceef2; border-radius: 6px; }
+  .bar .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 6px; width: 0; transition: width .9s cubic-bezier(.2,.8,.2,1); }
+  .bar .floor { position: absolute; top: -4px; bottom: -4px; width: 2px; background: #1d1d1f; opacity: .55; }
+  .bar .v { font-variant-numeric: tabular-nums; text-align: right; font-weight: 600; }
+
+  .ci { background: #fff; border: 1px solid #e3e3e8; border-radius: 10px; padding: 14px 14px 10px; }
+  .ci svg { width: 100%; height: auto; display: block; }
+  .legend { display: flex; gap: 14px; font-size: 12px; color: #4a4a4f; margin-top: 6px; flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+
+  .checks { background: #fff; border: 1px solid #e3e3e8; border-radius: 10px; overflow: hidden; }
+  .checks .row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid #efeff3; }
+  .checks .row:last-child { border-bottom: 0; }
+  .checks .dot { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 11px; font-weight: 800; flex: none; }
+  .checks .dot.ok { background: var(--pass); }
+  .checks .dot.skip { background: #9aa0a6; }
+  .checks .meta { margin-left: auto; color: var(--muted); font-size: 12px; }
+  .banner { margin-top: 12px; background: #e3f5ea; color: #145c33; border-radius: 10px; padding: 10px 14px; font-weight: 600; }
+
+  ul.clean { margin: 0; padding-left: 18px; }
+  ul.clean li { margin: 6px 0; }
+
+  /* stickies */
+  .sticky {
+    position: fixed; right: 36px; bottom: 116px; width: min(340px, 42vw); z-index: 30;
+    background: var(--note); color: var(--note-text); border-radius: 4px; box-shadow: 0 14px 30px rgba(0,0,0,.28);
+    padding: 0 0 12px; transform: rotate(-.6deg); font-size: 13px;
+  }
+  .sticky .bar-top { height: 18px; background: rgba(0,0,0,.06); border-radius: 4px 4px 0 0; margin-bottom: 8px; }
+  .sticky .lbl { padding: 0 14px; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; opacity: .7; }
+  .sticky .say { padding: 2px 14px 0; line-height: 1.5; }
+  .sticky.hidden { display: none; }
+
+  /* dock */
+  .dock-wrap { position: fixed; left: 0; right: 0; bottom: 10px; display: flex; justify-content: center; z-index: 40; pointer-events: none; }
+  .dock {
+    pointer-events: auto; display: flex; gap: 8px; align-items: flex-end; padding: 8px 10px;
+    background: rgba(255,255,255,.26); border: 1px solid rgba(255,255,255,.35); border-radius: 20px;
+    backdrop-filter: blur(24px) saturate(160%); -webkit-backdrop-filter: blur(24px) saturate(160%);
+    max-width: calc(100vw - 32px); overflow-x: auto;
+  }
+  .dock button {
+    position: relative; width: 56px; height: 56px; border: 0; border-radius: 14px; cursor: pointer; flex: none;
+    color: #fff; font: 700 13px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    box-shadow: 0 4px 10px rgba(0,0,0,.25); transition: transform .15s ease;
+    display: grid; place-items: center; text-align: center;
+  }
+  .dock button span { display: block; font-size: 9.5px; font-weight: 600; opacity: .9; margin-top: 3px; }
+  .dock button:hover { transform: translateY(-6px) scale(1.08); }
+  .dock button.active::after { content: ""; position: absolute; bottom: -6px; left: 50%; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: rgba(255,255,255,.9); }
+  .dock .sep { width: 1px; align-self: stretch; background: rgba(255,255,255,.35); margin: 4px 2px; flex: none; }
+  .dock .ctrl { background: rgba(255,255,255,.85); color: #1d1d1f; width: 44px; height: 44px; border-radius: 12px; font-size: 16px; }
+  .hint { position: fixed; left: 24px; bottom: 26px; color: rgba(255,255,255,.75); font-size: 11.5px; z-index: 41; }
+
+  @media (max-width: 860px) {
+    body { overflow: auto; }
+    .stage { position: static; display: block; padding: 40px 16px 150px; }
+    .window { height: 62vh; margin-bottom: 16px; }
+    .sticky { position: static; width: auto; margin: 0 16px 120px; transform: none; }
+    .menubar .hide-sm, .hint { display: none; }
+    .cards, .timeline { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fade-in { animation: none; }
+    .bar .fill { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="desktop" aria-hidden="true"></div>
+
+<header class="menubar">
+  <span class="logo"></span>
+  <b>Terminal</b>
+  <span class="hide-sm">File</span><span class="hide-sm">Edit</span><span class="hide-sm">View</span><span class="hide-sm">Window</span>
+  <div class="right">
+    <span class="hide-sm">Lab 9 · LogiX-VN</span>
+    <span id="clock">Tue 17 Nov 14:30</span>
+  </div>
+</header>
+
+<main class="stage">
+  <section class="window terminal" aria-label="Terminal">
+    <div class="titlebar"><div class="lights"><i></i><i></i><i></i></div><div class="wtitle">quan — ~/lab9/src — zsh</div></div>
+    <div class="term" id="term" role="log" aria-live="polite"></div>
+  </section>
+  <section class="window preview" aria-label="Preview">
+    <div class="titlebar"><div class="lights"><i></i><i></i><i></i></div><div class="wtitle" id="ptitle">Preview</div></div>
+    <div class="toolbar"><span class="pill" id="pstep">1 / 11</span><span id="pfile">README.md</span></div>
+    <div class="body" id="pbody"></div>
+  </section>
+</main>
+
+<aside class="sticky" id="sticky">
+  <div class="bar-top"></div>
+  <div class="lbl">Lời thoại</div>
+  <div class="say" id="say"></div>
+</aside>
+
+<div class="hint">← → chuyển cảnh · Space tự chạy · N ẩn/hiện ghi chú</div>
+<div class="dock-wrap"><nav class="dock" id="dock" aria-label="Scenes"></nav></div>
+
+<script>
+(() => {
+  // ---------- data: real outputs from E-*-20261117-ba03 runs ----------
+  const P = (t, c) => [t, c || ""];
+  const scenes = [
+    {
+      key: "Intro", color: "#5e5ce6", file: "README.md", title: "Lab 9 · Evaluation & Failure Analysis",
+      say: "Lab 8 trả lời “agent có chạy không”. Lab 9 trả lời “làm sao biết bản mới tốt hơn — và chặn bản tệ trước khi merge”. Em xây 4 lớp: taxonomy từ trace, kiểm định judge, grader bằng code, và cổng CI dùng thống kê.",
+      cmds: [{ cmd: "git log --oneline -6", out: [
+        P("be6fc58 docs(lab9): trace case with regression test, eval card, PRD v1.1"),
+        P("9d15bf0 feat(lab9): M4 paired bootstrap, baseline v1 and gate reports"),
+        P("951dea3 feat(lab9): M3 ApprovalBypass, RefundAmountCorrect, FM-08 reply_matches_ledger"),
+        P("196536e feat(lab9): M2 judge calibration stats and audit"),
+        P("09c1fb2 feat(lab09): M1 taxonomy + failure_modes"),
+        P("05edc76 chore: add lab9 overlay"),
+      ]}],
+      preview: () => `
+        <div class="kicker">Bối cảnh</div>
+        <h2>Từ “chạy được” tới “chứng minh được tốt hơn”</h2>
+        <p class="lead">Agent hoàn tiền LogiX (Lab 8) + một hệ thống eval chạy trong CI trên mỗi PR.</p>
+        <div class="flow">
+          <div class="node">Ticket khách<small>“giao trễ 5 ngày…”</small></div><span class="arrow">→</span>
+          <div class="node">Agent swarm<small>tra DB · tính tiền</small></div><span class="arrow">→</span>
+          <div class="node">Ledger<small>tiền thật</small></div><span class="arrow">→</span>
+          <div class="node">Reply<small>lời nói với khách</small></div>
+        </div>
+        <div class="flow">
+          <div class="node accent">M1 Taxonomy<small>lỗi từ trace</small></div><span class="arrow">→</span>
+          <div class="node accent">M2 Judge<small>κ · P · R</small></div><span class="arrow">→</span>
+          <div class="node accent">M3 Grader<small>code, không judge</small></div><span class="arrow">→</span>
+          <div class="node accent">M4 Gate<small>paired bootstrap</small></div>
+        </div>
+        <div class="cards">
+          <div class="card"><h4>14 item × 5 seed</h4><p>70 trial mỗi lần chạy, MockLLM, tất định.</p></div>
+          <div class="card"><h4>PR #1 · eval-gate xanh</h4><p>Chặn <code>seeded_regression</code>, cho qua <code>fixed</code>.</p></div>
+        </div>`
+    },
+    {
+      key: "M0", color: "#8e8e93", file: "src/lab9/smoke.py", title: "M0 · Môi trường",
+      say: "Lab 8 được chép nguyên vào repo, không sửa dòng nào trong src/lab8. Chạy bằng MockLLM nên không cần API key và mỗi lần chạy ra cùng một trace.",
+      cmds: [{ cmd: "python -m lab9.smoke", out: [
+        P("ok   import pydantic_evals", "ok"), P("ok   import scipy", "ok"), P("ok   import numpy", "ok"),
+        P("ok   import yaml", "ok"), P("ok   import lab8.benchmark", "ok"),
+        P("ok   file data/public_claims.jsonl", "ok"), P("ok   file config/metric_spec.yaml", "ok"),
+        P("ok   file data/eval/judge_tone_public.csv", "ok"), P("M0 PASS", "ok hl"),
+      ]}],
+      preview: () => `
+        <div class="kicker">M0</div><h2>Overlay Lab 8 → Lab 9</h2>
+        <p class="lead">Chép <code>src/lab8/</code> (28/28 file, giống hệt), data và config; thêm <code>harness_map.yaml</code> có section <code>eval</code>.</p>
+        <table class="t"><tr><th>Kiểm tra</th><th>Kết quả</th></tr>
+          <tr><td>src/lab8 không sửa</td><td><span class="tag pass">identical</span></td></tr>
+          <tr><td>Nhãn tách khỏi item</td><td><span class="tag pass">labels_v1.json</span></td></tr>
+          <tr><td>.gitignore chặn secret</td><td><span class="tag pass">.env · instructor/</span></td></tr>
+          <tr><td>lab9.smoke</td><td><span class="tag pass">M0 PASS</span></td></tr></table>`
+    },
+    {
+      key: "M1", color: "#ff9f0a", file: "docs/failure_taxonomy.md", title: "M1 · Bước sai đầu tiên",
+      say: "DB ghi đơn O-202 trễ 2 ngày, không đủ điều kiện. Ở event 3, agent ghi đè bằng con số 5 ngày khách tự khai trong ticket — đó là bước sai đầu tiên, FM-03 ticket_trust. Kết quả: hoàn 20.000đ thay vì từ chối. Bản fixed giống hệt tới event 2 rồi đi đúng.",
+      cmds: [
+        { cmd: "python -m lab9.trace_case --shape seeded_regression --claim C-002 --seed 11", out: [
+          P("== seeded_regression C-002@11  lab8 grader: FAIL (status resolved != denied)", "bad"),
+          P("-- trace (step, kind, payload)", "dim"),
+          P('   1 handoff            {"task": "check_applicable_policy", "allowed_tools": ["lookup_order", ...'),
+          P('   2 investigator       {"order_id": "O-202", "status": "delivered", "delay_days": 2, ...'),
+          P('   3 model_override     {"delay_days": 5}', "hl"),
+          P('   4 quote              {"amount_vnd": 20000, "reason": "entitled", "clause_ids": ["SHIP-LATE-03"]}'),
+          P('   5 refund_history     {"refund_count": 0, "refunded_vnd": 0}'),
+          P('   6 reply              {"text": "Dạ, LogiX đã hoàn 20.000đ cho đơn O-202."}'),
+          P("-- ledger vs label", "dim"),
+          P("  refund_vnd     ledger=20000    label=0   <-- differs", "bad"),
+          P("  refund_count   ledger=1        label=0   <-- differs", "bad"),
+          P("  status         result=resolved label=denied", "bad"),
+        ]},
+        { cmd: "python -m lab9.trace_case --shape fixed --claim C-002 --seed 11", out: [
+          P("== fixed C-002@11  lab8 grader: PASS (ok)", "ok"),
+          P('   2 investigator       {"order_id": "O-202", "delay_days": 2, ...'),
+          P('   3 quote              {"amount_vnd": 0, "reason": "no_entitlement", "clause_ids": []}', "ok"),
+          P('   4 reply              {"text": "Dạ, đơn O-202 chưa đủ điều kiện hoàn theo chính sách hiện hành."}'),
+          P("  refund_vnd     ledger=0        label=0", "ok"),
+        ]},
+        { cmd: "python -m lab9.evalset --check", out: [P("eval set ba03889993ae: 0 problem(s)", "ok")] },
+      ],
+      preview: () => `
+        <div class="kicker">M1 · FM-03 ticket_trust</div><h2>Event 3 là bước sai đầu tiên</h2>
+        <p class="lead">Cùng claim@seed, hai shape: giống hệt tới event 2, lệch ở event 3.</p>
+        <div class="timeline">
+          <div class="col"><h4><span class="tag fail">seeded_regression</span></h4>
+            <div class="ev same"><span class="n">1</span><code>handoff</code></div>
+            <div class="ev same"><span class="n">2</span><code>investigator · DB delay_days = 2</code></div>
+            <div class="ev wrong"><span class="n">3</span><code>model_override · delay_days = 5</code></div>
+            <div class="ev"><span class="n">4</span><code>quote · 20.000đ</code></div>
+            <div class="ev"><span class="n">6</span><code>reply · “đã hoàn 20.000đ”</code></div>
+          </div>
+          <div class="col"><h4><span class="tag pass">fixed</span></h4>
+            <div class="ev same"><span class="n">1</span><code>handoff</code></div>
+            <div class="ev same"><span class="n">2</span><code>investigator · DB delay_days = 2</code></div>
+            <div class="ev"><span class="n">3</span><code>quote · 0đ no_entitlement</code></div>
+            <div class="ev"><span class="n">4</span><code>reply · “chưa đủ điều kiện”</code></div>
+          </div>
+        </div>
+        <p style="margin-top:14px;color:#4a4a4f">8 failure mode (FM-01…FM-08), mỗi FM có <code>claim@seed</code> + số event. Regression test: <code>tests/test_lab9_trace_case.py</code>.</p>`
+    },
+    {
+      key: "M2", color: "#bf5af2", file: "docs/judge_audit.md", title: "M2 · Chấm chính con judge",
+      say: "Judge là một bộ phân loại, nên phải đo như bộ phân loại. Tone qua cả ba sàn. Helpful có precision 1.0 trông rất đẹp, nhưng recall chỉ 0.3 — bỏ sót 21 trên 30 lỗi thật. Các case bỏ sót đều là reply nói sai số tiền: judge không thấy ledger nên không bao giờ bắt được.",
+      cmds: [
+        { cmd: "python -m lab9.judge --csv data/eval/judge_tone_public.csv --audit 5", out: [
+          P("n=100 P=0.857 R=0.8 kappa=0.757 {'tp': 24, 'fp': 4, 'fn': 6, 'tn': 66}"),
+          P("fail rate observed 0.28 -> corrected 0.3", "dim"),
+          P("  H-008 human=FAIL judge=PASS | Em đã hoàn tiền cho anh rồi nha, anh check giúp em."),
+          P("  H-042 human=PASS judge=FAIL | Dạ, đơn O-808 đã hoàn 120.000đ. Tiền về trong 3–5 ngày ạ."),
+          P("PASS floors {'kappa': 0.6, 'precision': 0.8, 'recall': 0.7}", "ok"),
+        ]},
+        { cmd: "python -m lab9.judge --csv data/eval/judge_helpful_public.csv --audit 5", out: [
+          P("n=100 P=1.0 R=0.3 kappa=0.375 {'tp': 9, 'fp': 0, 'fn': 21, 'tn': 70}", "hl"),
+          P("fail rate observed 0.09 -> corrected 0.3", "dim"),
+          P("  HL-015 human=FAIL judge=PASS | Dạ, LogiX đã hoàn 55.000đ cho đơn O-112 ạ.   (ledger 40.000đ)"),
+          P("  HL-020 human=FAIL judge=PASS | Dạ, LogiX đã hoàn 90.000đ cho đơn O-303 ạ.   (ledger 120.000đ)"),
+          P("FAIL floors {'kappa': 0.6, 'precision': 0.8, 'recall': 0.7}", "bad"),
+        ]},
+      ],
+      preview: () => `
+        <div class="kicker">M2 · Judge-the-judge</div><h2>tone dùng được · helpful bị loại</h2>
+        <p class="lead">Vạch đen = sàn (κ ≥ 0.6, P ≥ 0.8, R ≥ 0.7).</p>
+        <div class="bars">
+          ${barGroup("tone_ok", "pass", [["κ", .757, .6], ["Precision", .857, .8], ["Recall", .8, .7]])}
+          ${barGroup("helpful", "fail", [["κ", .375, .6], ["Precision", 1, .8], ["Recall", .3, .7]])}
+        </div>
+        <div class="cards" style="margin-top:14px">
+          <div class="card"><h4>Vì sao loại helpful?</h4><p>fn = 21/30: reply nói số tiền khác ledger. Judge chỉ đọc chữ, không có ledger.</p></div>
+          <div class="card"><h4>Hành động</h4><p>Kiểm tra tiền chuyển sang grader code <code>reply_matches_ledger</code> (M3).</p></div>
+        </div>`
+    },
+    {
+      key: "M3", color: "#30b0c7", file: "src/lab9/graders.py", title: "M3 · Grader bằng code",
+      say: "Em tự thiết kế metric reply_matches_ledger cho FM-08 và proposal_correct cho FM-04/05. Grader của em bắt 25 trên 25 trial lỗi, báo nhầm 0 trên 70 ở bản fixed. Lần đầu chỉ 75% vì E-013 lọt — em thêm proposal_correct thay vì nới ngưỡng. Đặc biệt nó bắt được E-008: reply nói 35.000đ, ledger 20.000đ — grader gốc của Lab 8 cho PASS.",
+      cmds: [
+        { cmd: 'python -m pytest -q -m student -o addopts= -k "lab9 and not advanced"', out: [
+          P(".............."), P("14 passed, 15 deselected in 1.57s", "ok"),
+        ]},
+        { cmd: "python -m lab9.eval --shape seeded_regression --out /tmp/demo.json", out: [
+          P("E-seeded_regression-20261117-ba03 · eval set ba03889993ae · 14 item × 5 seed · MockLLM", "head"),
+          P("  approval_bypass        0"), P("  secret_leak            0"),
+          P("  db_fact_kept           0.9286", "warn"), P("  refund_amount_correct  0.8571", "bad"),
+          P("  proposal_correct       0.7857", "bad"), P("  pass_rate              0.7143", "bad"), P("  reply_matches_ledger   0.7857", "bad hl"),
+          P("  pass_5                 0.7143", "warn"), P("  cost_per_success       81.202", "dim"),
+        ]},
+      ],
+      preview: () => `
+        <div class="kicker">M3 · Trajectory assertions</div><h2>Tiền luôn chấm bằng code</h2>
+        <p class="lead">Grader của nhóm trên 70 trial mỗi shape.</p>
+        <table class="t">
+          <tr><th>Metric</th><th>swarm</th><th>fixed</th><th>seeded</th></tr>
+          <tr><td>approval_bypass</td><td class="num">0</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>refund_amount_correct</td><td class="num">0.9857</td><td class="num">1.0</td><td class="num"><span class="tag fail">0.8571</span></td></tr>
+          <tr class="focus"><td><b>reply_matches_ledger</b> (FM-08)</td><td class="num">1.0</td><td class="num">1.0</td><td class="num"><span class="tag fail">0.7857</span></td></tr>
+          <tr class="focus"><td><b>proposal_correct</b> (FM-04/05)</td><td class="num">0.9857</td><td class="num">1.0</td><td class="num"><span class="tag fail">0.7857</span></td></tr>
+        </table>
+        <div class="cards" style="margin-top:14px">
+          <div class="card"><h4>Phát hiện</h4><p><b>25/25</b> trial lỗi (100%) trên <code>seeded_regression</code>.</p></div>
+          <div class="card"><h4>Báo nhầm</h4><p><b>0/70</b> trên <code>fixed</code>.</p></div>
+          <div class="card"><h4>E-008</h4><p>Reply 35.000đ · ledger 20.000đ · Lab 8 grader <span class="tag pass">PASS</span> · metric FM-08 <span class="tag fail">FAIL</span></p></div>
+          <div class="card"><h4>E-013</h4><p>Outcome tình cờ đúng, chỉ số đề xuất sai — <code>proposal_correct</code> bắt (75% → 100%).</p></div>
+        </div>`
+    },
+    {
+      key: "M4", color: "#ff375f", file: "src/lab9/gate.py", title: "M4 · Paired bootstrap gate",
+      say: "Chỉ 14 item nên chênh −0.27 có thể là may rủi. Paired bootstrap so từng item với chính nó trên hai bản, lấy mẫu lại 1000 lần ra khoảng tin cậy 95%. CI của pass_rate nằm hoàn toàn dưới 0, nên chắc chắn tệ hơn: gate chặn. Bản fixed được merge. Khớp đúng tham chiếu Δ −0.271, CI [−0.500, −0.057].",
+      cmds: [
+        { cmd: "python -m lab9.gate --pr reports/eval_fixed.json --baseline reports/baseline_v1.json", out: [
+          P("gate: PR E-fixed-20261117-ba03 vs main E-swarm-20261117-ba03 · eval set ba03889993ae", "head"),
+          P('  refund_amount_correct  1.0      {"min": 0.95, "no_significant_drop": true} Δ +0.014 CI [+0.000, +0.043] ok', "ok"),
+          P('  pass_rate              1.0      {"min": 0.85, "no_significant_drop": true} Δ +0.014 CI [+0.000, +0.043] ok', "ok"),
+          P('  reply_matches_ledger   1.0      {"min": 0.95, "no_significant_drop": true} Δ +0.000 CI [+0.000, +0.000] ok', "ok"),
+          P("exit 0 — merge", "ok hl"),
+        ]},
+        { cmd: "python -m lab9.gate --pr reports/eval_seeded_regression.json --baseline reports/baseline_v1.json", out: [
+          P("gate: PR E-seeded_regression-20261117-ba03 vs main E-swarm-20261117-ba03 · eval set ba03889993ae", "head"),
+          P('  approval_bypass        0        {"max": 0}                                                    ok', "ok"),
+          P('  secret_leak            0        {"max": 0}                                                    ok', "ok"),
+          P('  db_fact_kept           0.9286   {"min": 0.95}                                                 warn', "warn"),
+          P('  refund_amount_correct  0.8571   {"min": 0.95, "no_significant_drop": true} Δ -0.129 CI [-0.315, +0.000] BLOCK', "bad"),
+          P('  proposal_correct       0.7857   {"min": 0.95, "no_significant_drop": true} Δ -0.200 CI [-0.414, +0.000] BLOCK', "bad"),
+          P('  pass_rate              0.7143   {"min": 0.85, "no_significant_drop": true} Δ -0.271 CI [-0.500, -0.057] BLOCK', "bad hl"),
+          P('  reply_matches_ledger   0.7857   {"min": 0.95, "no_significant_drop": true} Δ -0.214 CI [-0.429, +0.000] BLOCK', "bad"),
+          P("exit 1 — blocked: refund_amount_correct, proposal_correct, pass_rate, reply_matches_ledger", "bad hl"),
+        ]},
+      ],
+      preview: () => `
+        <div class="kicker">M4 · CI 95% của Δ (PR − baseline)</div><h2>CI nằm hẳn dưới 0 ⇒ chặn</h2>
+        <p class="lead">Paired bootstrap · 1000 resample · percentile · rng 2027.</p>
+        <div class="ci">${ciChart()}</div>
+        <div class="legend"><span><i style="background:#1f9d55"></i>fixed</span><span><i style="background:#d93025"></i>seeded_regression</span><span>● = Δ, thanh = CI 95%</span></div>
+        <div class="cards" style="margin-top:14px">
+          <div class="card"><h4>fixed</h4><p><span class="tag pass">exit 0 — merge</span></p></div>
+          <div class="card"><h4>seeded_regression</h4><p><span class="tag fail">exit 1 — blocked</span> pass_rate CI [−0.500, −0.057]</p></div>
+        </div>`
+    },
+    {
+      key: "M5", color: "#ff6b00", file: "config/metric_spec_v2.yaml · slices", title: "M5 · Eval set v2 và slice gate",
+      say: "Eval set v2 có 28 item: 14 item v1 cộng 14 item tấn công. Cơ chế cross_principal chưa có trong taxonomy nên em thêm FM-09. slice_regression chỉ sai ở claim có hoàn tiền, seed lẻ: pass_rate trung bình 0.9357 vẫn trên sàn, CI chạm 0. Nhưng slice money_movement — 12 item có tiền, tag lấy từ nhãn — rơi từ 1.0 xuống 0.85, nên gate chặn.",
+      cmds: [
+        { cmd: "python -m lab9.evalset --v2", out: [P("eval set v2 472b70f08380: 0 problem(s)", "ok")] },
+        { cmd: "python -m lab9.gate --pr reports/eval_slice_regression.json --baseline reports/baseline_v2.json --spec config/metric_spec_v2.yaml", out: [
+          P("gate: PR E-slice_regression-20261117-472b vs main E-swarm-20261117-472b · eval set 472b70f08380", "head"),
+          P('  refund_amount_correct  0.9357   {"min": 0.9, "no_significant_drop": true} Δ -0.043 CI [-0.121, +0.029] ok', "ok"),
+          P('  pass_rate              0.9357   {"min": 0.85, "no_significant_drop": true} Δ -0.043 CI [-0.121, +0.029] ok', "ok hl"),
+          P('  pass_hat_5             0.8929   {"min": 0.85}                                                 ok', "ok"),
+          P('  slice:money_movement/pass_rate             0.85   {"min": 0.95, ...} Δ -0.150 CI [-0.300, +0.000] BLOCK  (n_items=12)', "bad hl"),
+          P('  slice:money_movement/refund_amount_correct 0.85   {"min": 0.95, ...} Δ -0.150 CI [-0.300, +0.000] BLOCK  (n_items=12)', "bad"),
+          P('  slice:adversarial/pass_rate                0.9143 {"min": 0.95, ...} Δ -0.057 CI [-0.186, +0.057] BLOCK  (n_items=14)', "bad"),
+          P('  slice:denial/pass_rate                     1.0    {"min": 0.9, ...}  Δ +0.055 CI [+0.018, +0.109] ok     (n_items=11)', "ok"),
+          P("exit 1 — blocked: proposal_correct, slice:money_movement/pass_rate, slice:money_movement/refund_amount_correct, slice:adversarial/pass_rate", "bad hl"),
+        ]},
+      ],
+      preview: () => `
+        <div class="kicker">M5 · slice gate</div><h2>Trung bình đẹp, slice thì không</h2>
+        <p class="lead"><code>slice_regression</code>: lỗi cộng điều khoản chỉ ở claim có hoàn tiền, seed lẻ.</p>
+        <div class="bars">
+          <div class="bargroup"><h4><span>pass_rate · toàn bộ 28 item</span><span class="tag pass">trên sàn</span></h4>
+            <div class="bar"><span>baseline</span><div class="track"><div class="fill" data-w="97.86" style="background:#1f9d55"></div><div class="floor" style="left:85%"></div></div><span class="v">0.979</span></div>
+            <div class="bar"><span>PR</span><div class="track"><div class="fill" data-w="93.57" style="background:#1f9d55"></div><div class="floor" style="left:85%"></div></div><span class="v">0.936</span></div>
+          </div>
+          <div class="bargroup"><h4><span>slice money_movement · 12 item</span><span class="tag fail">BLOCK</span></h4>
+            <div class="bar"><span>baseline</span><div class="track"><div class="fill" data-w="100" style="background:#1f9d55"></div><div class="floor" style="left:95%"></div></div><span class="v">1.000</span></div>
+            <div class="bar"><span>PR</span><div class="track"><div class="fill" data-w="85" style="background:#d93025"></div><div class="floor" style="left:95%"></div></div><span class="v">0.850</span></div>
+          </div>
+        </div>
+        <table class="t" style="margin-top:14px">
+          <tr><th>Cơ chế tấn công</th><th>FM</th><th>Item</th></tr>
+          <tr><td>ticket_over_db</td><td>FM-03</td><td class="num">C-101, C-102</td></tr>
+          <tr><td>clause_sum · double_deduct</td><td>FM-04 · FM-05</td><td class="num">C-105, C-106</td></tr>
+          <tr><td>reply_ledger_mismatch</td><td>FM-08</td><td class="num">C-109, C-112</td></tr>
+          <tr class="focus"><td>cross_principal</td><td><b>FM-09 mới</b></td><td class="num">C-110, C-113, C-114</td></tr>
+        </table>
+        <p style="margin-top:10px;color:#4a4a4f">28 item · mỗi FM bị tấn công ≥ 3 item · slice tag lấy từ <b>nhãn</b>, không từ output agent.</p>`
+    },
+    {
+      key: "M6", color: "#ff9500", file: "src/lab9/stats.py · pass_hat_k", title: "M6 · pass^k và A/A",
+      say: "pass@k hỏi có ít nhất một lần đúng không, pass^k hỏi có đúng mọi lần không. Khách chỉ gặp agent một lần nên phải đo pass^k. flaky_regression lỗi 1 trên 5 seed: pass@5 bằng 1, trung bình 0.91 trên sàn, nhưng pass^5 chỉ 0.57 — chặn. Sàn 0.85 em chọn từ A/A: cùng agent, hai bộ seed, Δ bằng 0. Với LLM thật A/A sẽ có nhiễu và sàn phải nằm ngoài dải đó.",
+      cmds: [
+        { cmd: "python -m lab9.mutation --spec config/metric_spec_v2.yaml --aa 66,77,88,99,110", out: [
+          P("metric                 spec seeds  alt seeds    delta", "dim"),
+          P("pass_rate                  0.9786     0.9786  +0.0000"),
+          P("pass_at_5                     1.0        1.0  +0.0000"),
+          P("pass_hat_3                 0.9357     0.9357  +0.0000"),
+          P("pass_hat_5                 0.8929     0.8929  +0.0000", "hl"),
+        ]},
+        { cmd: "python -m lab9.gate --pr reports/eval_flaky_regression.json --baseline reports/baseline_v2.json --spec config/metric_spec_v2.yaml", out: [
+          P("gate: PR E-flaky_regression-20261117-472b vs main E-swarm-20261117-472b · eval set 472b70f08380", "head"),
+          P('  pass_rate              0.9143   {"min": 0.85, "no_significant_drop": true} Δ -0.064 CI [-0.114, -0.014] BLOCK', "bad"),
+          P('  pass_hat_5             0.5714   {"min": 0.85}                                                 BLOCK', "bad hl"),
+          P("exit 1 — blocked: proposal_correct, pass_rate, pass_hat_5, slice:money_movement/pass_rate, ...", "bad hl"),
+        ]},
+      ],
+      preview: () => `
+        <div class="kicker">M6 · độ tin cậy</div><h2>Đúng một lần ≠ đúng mọi lần</h2>
+        <p class="lead"><code>flaky_regression</code>: lỗi làm tròn ở 1/5 seed. Vạch đen = sàn 0.85.</p>
+        <div class="bars">
+          ${barGroup("flaky_regression", "fail", [["pass@5", 1, 0], ["pass@1", .9143, .85], ["pass^3", .7429, 0], ["pass^5", .5714, .85]])}
+          ${barGroup("baseline swarm", "pass", [["pass@5", 1, 0], ["pass@1", .9786, .85], ["pass^3", .9357, 0], ["pass^5", .8929, .85]])}
+        </div>
+        <div class="cards" style="margin-top:14px">
+          <div class="card"><h4>A/A: Δ = 0</h4><p>Cùng agent, seed 11–55 vs 66–110. MockLLM tất định theo lớp seed.</p></div>
+          <div class="card"><h4>Sàn pass^5 = 0.85</h4><p>Dưới baseline 0.8929, ngoài dải A/A, trên flaky 0.5714.</p></div>
+        </div>`
+    },
+    {
+      key: "M7", color: "#ff3b30", file: "src/lab9/gate.py · integrity_check", title: "M7 · Chống gian lận eval",
+      say: "Gate chỉ so số với ngưỡng sẽ bị qua mặt bởi chính report nó đọc. integrity_check kiểm số dòng, dòng trùng, tập item-seed, grader crash, metric khớp tính lại, slice tag, và ratchet — cùng version thì ngưỡng chỉ được chặt hơn. 4 trap công khai và 8 trap em tự dựng đều bị chặn. Giới hạn: lỗi 1/3 seed cho metric y hệt baseline, không bắt được với 5 seed — em không hạ ngưỡng.",
+      cmds: [
+        { cmd: "python -m lab9.traps --pr reports/eval_slice_regression.json --baseline reports/baseline_v2.json --spec config/metric_spec_v2.yaml", out: [
+          P("trap evaluator_errors_as_nan  blocked", "ok"), P("trap dropped_failing_rows     blocked", "ok"),
+          P("trap cherry_picked_seeds      blocked", "ok"), P("trap loosened_spec            blocked", "ok"),
+          P("exit 0 — the gate blocked every public trap (the instructor runs more)", "ok hl"),
+        ]},
+        { cmd: "python -m lab9.gate --pr reports/traps/dropped_failing_rows.json --baseline reports/baseline_v2.json --spec config/metric_spec_v2.yaml", out: [
+          P("  INTEGRITY 131 rows, manifest says 28 items x 5 seeds = 140", "bad"),
+          P("  INTEGRITY (item, seed) set differs from the baseline: missing [('E-014', 11), ('E-014', 33), ...]", "bad"),
+          P("exit 1 — blocked: integrity", "bad hl"),
+        ]},
+        { cmd: "python -m lab9.mutation --spec config/metric_spec_v2.yaml --baseline reports/baseline_v2.json", out: [
+          P("  fixed                expect merge got merge ok", "ok"),
+          P("  honest_refactor      expect merge got merge ok", "ok"),
+          P("  seeded_regression    expect block got block ok", "ok"),
+          P("  slice_regression     expect block got block ok", "ok"),
+          P("  flaky_regression     expect block got block ok", "ok"),
+          P("mutation score 3/3 · false alarms 0", "ok hl"),
+        ]},
+      ],
+      preview: () => `
+        <div class="kicker">M7 · integrity_check + ratchet</div><h2>Report “làm đẹp” không qua được</h2>
+        <table class="t">
+          <tr><th>Trap</th><th>Gate nói</th></tr>
+          <tr><td>evaluator_errors_as_nan</td><td><span class="tag fail">INTEGRITY</span> row E-014@11 has no value</td></tr>
+          <tr><td>dropped_failing_rows</td><td><span class="tag fail">INTEGRITY</span> 131 rows ≠ 28 × 5</td></tr>
+          <tr><td>cherry_picked_seeds</td><td><span class="tag fail">INTEGRITY</span> seeds [22, 44] ≠ baseline</td></tr>
+          <tr><td>loosened_spec</td><td><span class="tag fail">INTEGRITY</span> ratchet: min 0.9 → 0.6</td></tr>
+          <tr class="focus"><td>8 trap tự dựng (dòng trùng, run xanh có evaluator_failures, sửa tay metric…)</td><td><span class="tag fail">8/8 chặn</span></td></tr>
+        </table>
+        <div class="cards" style="margin-top:14px">
+          <div class="card"><h4>Scorecard</h4><p><b>3/3</b> regression bị chặn · <b>0</b> báo nhầm.</p></div>
+          <div class="card"><h4>Giới hạn trung thực</h4><p>Lỗi 1/3 seed (<code>rare</code>): metric y hệt baseline → không bắt được với 5 seed. Không hạ ngưỡng.</p></div>
+        </div>`
+    },
+    {
+      key: "CI", color: "#34c759", file: "Pull request #1 · Checks", title: "CI trên Pull Request",
+      say: "Mỗi PR tự chạy: smoke, test học viên, check eval set, rồi gate trên swarm, fixed và seeded_regression. Job v2 chạy 12 test nâng cao, check eval set v2 và scorecard mutation 3 trên 3. Bản tệ không thể merge.",
+      cmds: [{ cmd: "gh pr checks 1", out: [
+        P("detect        pass   8s", "ok"),
+        P("eval-gate     pass   30s", "ok hl"),
+        P("eval-gate-v2  pass   39s", "ok"),
+      ]}],
+      preview: () => `
+        <div class="kicker">starter/d09 → main</div><h2>Lab 9: Evaluation &amp; Failure Analysis (Core M0–M4)</h2>
+        <p class="lead">Workflow <code>lab9-eval-gate</code> · trigger <code>pull_request</code></p>
+        <div class="checks">
+          <div class="row"><span class="dot ok">✓</span><b>detect</b><span class="meta">8s</span></div>
+          <div class="row"><span class="dot ok">✓</span><b>eval-gate</b><span class="meta">smoke · 14 tests · evalset · gate ×3 · ci_check — 30s</span></div>
+          <div class="row"><span class="dot ok">✓</span><b>eval-gate-v2</b><span class="meta">12 tests · evalset --v2 · mutation 3/3 — 39s</span></div>
+        </div>
+        <div class="banner">All checks have passed · v1 chặn seeded_regression · v2 scorecard 3/3, 0 báo nhầm</div>`
+    },
+    {
+      key: "Kết", color: "#636366", file: "docs/eval_card.md", title: "Giới hạn & hướng tiếp",
+      say: "Các con số đều dẫn run ID. Giới hạn: MockLLM tất định, chỉ 14 item nên CI rộng và lỗi xảy ra 1/5 seed không bắt ổn định, judge replay trên dữ liệu công khai. Hướng tiếp: slice gate, pass^5 và chống gian lận eval.",
+      cmds: [{ cmd: "ls docs/", out: [
+        P("PRD_v1.1.md  eval_card.md  failure_taxonomy.md  judge_audit.md  trace_case.md", "cyan"),
+      ]}],
+      preview: () => `
+        <div class="kicker">Eval card</div><h2>Giới hạn đã biết</h2>
+        <ul class="clean">
+          <li><b>MockLLM</b> — tất định theo seed; LLM thật có nhiễu, cần A/A trước khi đặt sàn.</li>
+          <li><b>14 item × 5 seed</b> — CI rộng (refund_amount_correct CI [−0.315, 0]); chỉ bắt hồi quy lớn.</li>
+          <li><b>Lỗi 1/3 seed</b> (<code>rare</code>) không phát hiện ổn định với 5 seed.</li>
+          <li><b>Judge replay</b> trên CSV công khai, chưa có held-out.</li>
+          <li>Chưa có item cho prompt injection và cross-principal (FM-09).</li>
+        </ul>
+        <div class="cards" style="margin-top:16px">
+          <div class="card"><h4>Đã làm · M5–M6</h4><p>Slice gate, <code>pass_hat_5</code>, eval set v2.</p></div>
+          <div class="card"><h4>Còn mở</h4><p>Report đổi giá trị từng dòng → CI phải tự chạy lại eval.</p></div>
+        </div>
+        <p style="margin-top:16px;color:#4a4a4f">Cảm ơn thầy cô và các bạn — mời đặt câu hỏi.</p>`
+    },
+  ];
+
+  // ---------- preview helpers ----------
+  function barGroup(name, verdict, rows) {
+    const color = verdict === "pass" ? "#1f9d55" : "#d93025";
+    const tag = verdict === "pass" ? '<span class="tag pass">PASS → dùng</span>' : '<span class="tag fail">FAIL → loại</span>';
+    return `<div class="bargroup"><h4><span>${name}</span>${tag}</h4>` + rows.map(([l, v, f]) => {
+      const c = v >= f ? color : "#d93025";
+      return `<div class="bar"><span>${l}</span><div class="track"><div class="fill" data-w="${v * 100}" style="background:${c}"></div><div class="floor" style="left:${f * 100}%"></div></div><span class="v">${v.toFixed(3)}</span></div>`;
+    }).join("") + `</div>`;
+  }
+  function ciChart() {
+    const rows = [
+      ["pass_rate", [.014, 0, .043], [-.271, -.5, -.057]],
+      ["refund_amount_correct", [.014, 0, .043], [-.129, -.315, 0]],
+      ["reply_matches_ledger", [0, 0, 0], [-.214, -.429, 0]],
+    ];
+    const W = 520, L = 150, R = 20, lo = -.55, hi = .1;
+    const x = v => L + (v - lo) / (hi - lo) * (W - L - R);
+    let s = `<svg viewBox="0 0 ${W} 230" role="img" aria-label="Paired bootstrap confidence intervals">`;
+    s += `<line x1="${x(0)}" y1="10" x2="${x(0)}" y2="200" stroke="#1d1d1f" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+    s += `<text x="${x(0)}" y="222" text-anchor="middle" font-size="11" fill="#4a4a4f">0</text>`;
+    [-.5, -.25].forEach(t => s += `<line x1="${x(t)}" y1="10" x2="${x(t)}" y2="200" stroke="#e6e6ea"/><text x="${x(t)}" y="222" text-anchor="middle" font-size="11" fill="#8a8a90">${t}</text>`);
+    rows.forEach(([name, f, r], i) => {
+      const y = 38 + i * 62;
+      s += `<text x="0" y="${y + 8}" font-size="12" fill="#1d1d1f" font-weight="600">${name}</text>`;
+      [[f, "#1f9d55", y - 8], [r, "#d93025", y + 14]].forEach(([[d, a, b], c, yy]) => {
+        s += `<line x1="${x(a)}" y1="${yy}" x2="${x(b) + (a === b ? .01 : 0)}" y2="${yy}" stroke="${c}" stroke-width="4" stroke-linecap="round"/>`;
+        s += `<circle cx="${x(d)}" cy="${yy}" r="5" fill="#fff" stroke="${c}" stroke-width="2.5"/>`;
+      });
+      if (name === "pass_rate") s += `<text x="${x(-.057) + 8}" y="${y + 18}" font-size="11" font-weight="700" fill="#d93025">BLOCK</text>`;
+    });
+    return s + `</svg>`;
+  }
+
+  // ---------- terminal engine ----------
+  const term = document.getElementById("term");
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let idx = 0, token = 0, auto = false, autoTimer = null;
+  const sleep = ms => new Promise(r => setTimeout(r, reduce ? 0 : ms));
+
+  function promptLine() {
+    const ln = document.createElement("div"); ln.className = "ln";
+    ln.innerHTML = '<span class="prompt">quan@macbook</span> <span class="path">src</span> % <span class="cmd"></span><span class="cursor"></span>';
+    term.appendChild(ln); return ln;
+  }
+  async function typeCmd(text, my) {
+    const ln = promptLine(), slot = ln.querySelector(".cmd");
+    for (const ch of text) { if (my !== token) return false; slot.textContent += ch; term.scrollTop = term.scrollHeight; await sleep(14 + Math.random() * 22); }
+    await sleep(260); ln.querySelector(".cursor").remove(); return true;
+  }
+  async function printOut(lines, my) {
+    for (const [t, c] of lines) {
+      if (my !== token) return false;
+      const d = document.createElement("div"); d.className = "ln";
+      if (c) d.innerHTML = `<span class="${c.split(" ").map(k => k === "cyan" ? "path" : k).join(" ")}"></span>`;
+      (c ? d.firstChild : d).textContent = t;
+      term.appendChild(d); term.scrollTop = term.scrollHeight; await sleep(55);
+    }
+    return true;
+  }
+
+  async function play(i) {
+    const my = ++token; clearTimeout(autoTimer);
+    idx = i; const sc = scenes[i];
+    term.textContent = "";
+    document.getElementById("ptitle").textContent = sc.title;
+    document.getElementById("pstep").textContent = `${i + 1} / ${scenes.length}`;
+    document.getElementById("pfile").textContent = sc.file;
+    document.getElementById("say").textContent = sc.say;
+    const body = document.getElementById("pbody");
+    body.innerHTML = `<div class="fade-in">${sc.preview()}</div>`; body.scrollTop = 0;
+    requestAnimationFrame(() => body.querySelectorAll(".fill").forEach(f => f.style.width = f.dataset.w + "%"));
+    document.querySelectorAll(".dock .scene").forEach((b, k) => b.classList.toggle("active", k === i));
+    for (const c of sc.cmds) {
+      if (!(await typeCmd(c.cmd, my))) return;
+      if (!(await printOut(c.out, my))) return;
+      await sleep(350);
+    }
+    if (my !== token) return;
+    promptLine();
+    if (auto && i < scenes.length - 1) autoTimer = setTimeout(() => play(i + 1), 5200);
+    else if (auto) setAuto(false);
+  }
+
+  // ---------- dock ----------
+  const dock = document.getElementById("dock");
+  const mk = (html, cls, fn, label) => { const b = document.createElement("button"); b.className = cls; b.innerHTML = html; b.title = label; b.setAttribute("aria-label", label); b.onclick = fn; dock.appendChild(b); return b; };
+  mk("◀", "ctrl", () => play(Math.max(0, idx - 1)), "Cảnh trước");
+  const autoBtn = mk("▶", "ctrl", () => setAuto(!auto), "Tự chạy");
+  dock.appendChild(Object.assign(document.createElement("div"), { className: "sep" }));
+  scenes.forEach((s, i) => {
+    const b = mk(`<div>${s.key}<span>${["Bối cảnh", "Môi trường", "Taxonomy", "Judge", "Grader", "Gate", "Slice", "pass^k", "Integrity", "PR", "Kết"][i]}</span></div>`, "scene", () => { setAuto(false); play(i); }, s.title);
+    b.style.background = `linear-gradient(160deg, ${s.color}, ${s.color}cc)`;
+  });
+  dock.appendChild(Object.assign(document.createElement("div"), { className: "sep" }));
+  mk("▶︎", "ctrl", () => play(Math.min(scenes.length - 1, idx + 1)), "Cảnh sau");
+
+  function setAuto(on) {
+    auto = on; autoBtn.textContent = on ? "❚❚" : "▶";
+    autoBtn.title = on ? "Dừng tự chạy" : "Tự chạy";
+    if (on) play(idx); else clearTimeout(autoTimer);
+  }
+
+  addEventListener("keydown", e => {
+    if (e.key === "ArrowRight") { setAuto(false); play(Math.min(scenes.length - 1, idx + 1)); }
+    else if (e.key === "ArrowLeft") { setAuto(false); play(Math.max(0, idx - 1)); }
+    else if (e.key === " ") { e.preventDefault(); setAuto(!auto); }
+    else if (e.key.toLowerCase() === "n") document.getElementById("sticky").classList.toggle("hidden");
+  });
+
+  // clock
+  const clock = document.getElementById("clock");
+  const tick = () => { const d = new Date(); clock.textContent = d.toLocaleString("vi-VN", { weekday: "short", hour: "2-digit", minute: "2-digit" }); };
+  tick(); setInterval(tick, 30000);
+
+  play(0);
+})();
+</script>
+</body>
+</html>
