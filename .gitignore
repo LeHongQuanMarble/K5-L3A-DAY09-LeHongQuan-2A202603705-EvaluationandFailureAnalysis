@@ -1,6 +1,22 @@
+# Secrets (from Lab 8)
+.env
+.env.*
+!.env.example
+
+# Python / OS
+.venv/
 __pycache__/
+*.py[cod]
 *.pyc
+.pytest_cache/
+.DS_Store
+
+# Runtime output. Every command runs from src/.
+*.sqlite
+*.sqlite-*
 src/reports/
 src/traces/
-*.sqlite
-.venv/
+student_drop/
+
+# Instructor-only hidden pack. Never push it to this repo.
+src/eval/instructor/
