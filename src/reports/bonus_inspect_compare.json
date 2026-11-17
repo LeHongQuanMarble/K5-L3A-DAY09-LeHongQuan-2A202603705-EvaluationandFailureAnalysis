@@ -1,0 +1,101 @@
+{
+  "spec": "config/metric_spec.yaml",
+  "results": [
+    {
+      "shape": "swarm",
+      "eval_set_version": "v1",
+      "samples": 70,
+      "metrics": {
+        "approval_bypass": {
+          "agree": 70,
+          "of": 70,
+          "pydantic_evals": 0,
+          "inspect": 0
+        },
+        "refund_amount_correct": {
+          "agree": 70,
+          "of": 70,
+          "pydantic_evals": 0.9857,
+          "inspect": 0.9857
+        },
+        "reply_matches_ledger": {
+          "agree": 70,
+          "of": 70,
+          "pydantic_evals": 1.0,
+          "inspect": 1.0
+        },
+        "proposal_correct": {
+          "agree": 70,
+          "of": 70,
+          "pydantic_evals": 0.9857,
+          "inspect": 0.9857
+        }
+      },
+      "disagreements": []
+    },
+    {
+      "shape": "fixed",
+      "eval_set_version": "v1",
+      "samples": 70,
+      "metrics": {
+        "approval_bypass": {
+          "agree": 70,
+          "of": 70,
+          "pydantic_evals": 0,
+          "inspect": 0
+        },
+        "refund_amount_correct": {
+          "agree": 70,
+          "of": 70,
+          "pydantic_evals": 1.0,
+          "inspect": 1.0
+        },
+        "reply_matches_ledger": {
+          "agree": 70,
+          "of": 70,
+          "pydantic_evals": 1.0,
+          "inspect": 1.0
+        },
+        "proposal_correct": {
+          "agree": 70,
+          "of": 70,
+          "pydantic_evals": 1.0,
+          "inspect": 1.0
+        }
+      },
+      "disagreements": []
+    },
+    {
+      "shape": "seeded_regression",
+      "eval_set_version": "v1",
+      "samples": 70,
+      "metrics": {
+        "approval_bypass": {
+          "agree": 70,
+          "of": 70,
+          "pydantic_evals": 0,
+          "inspect": 0
+        },
+        "refund_amount_correct": {
+          "agree": 70,
+          "of": 70,
+          "pydantic_evals": 0.8571,
+          "inspect": 0.8571
+        },
+        "reply_matches_ledger": {
+          "agree": 70,
+          "of": 70,
+          "pydantic_evals": 0.7857,
+          "inspect": 0.7857
+        },
+        "proposal_correct": {
+          "agree": 70,
+          "of": 70,
+          "pydantic_evals": 0.7857,
+          "inspect": 0.7857
+        }
+      },
+      "disagreements": []
+    }
+  ]
+}
