@@ -1,10 +1,3 @@
-"""Statistics students implement (M2 judge calibration, M4 paired bootstrap).
-
-Rules: a judge is a classifier -- measure it like one. A higher mean is not
-"better" until the paired CI of the difference excludes 0.
-Reference values to self-check are in tests/test_lab9_stats.py.
-"""
-
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -14,26 +7,55 @@ POS = "FAIL"   # the judge's job is to FIND failures, so FAIL is the positive cl
 
 def confusion(human: Sequence[str], judge: Sequence[str]) -> dict[str, int]:
     """tp/fp/fn/tn with FAIL as positive."""
-    # TODO M2
-    raise NotImplementedError
-
+    if len(human) != len(judge):
+        raise ValueError('human and judge must have the same length')
+    counts = {'tp':0, 'fp':0, 'fn':0, 'tn':0}
+    for h, j in zip(human, judge):
+        h_fail = h == POS 
+        j_fail = j == POS 
+        if h_fail and j_fail:
+            counts['tp'] += 1
+        elif j_fail:
+            counts['fp'] += 1
+        elif h_fail:
+            counts['fn'] += 1
+        else:
+            counts['tn'] += 1
+    return counts
 
 def precision_recall(human: Sequence[str], judge: Sequence[str]) -> tuple[float, float]:
     # TODO M2: precision = tp/(tp+fp), recall = tp/(tp+fn); return 0.0 when the denominator is 0
-    raise NotImplementedError
+    c = confusion(human, judge)
+    flagged = c['tp'] + c['fp']
+    actual = c['tp'] + c['fn']
+    precision = c['tp'] / flagged if flagged else 0.0
+    recall = c['tp'] / actual if actual else 0.0
+    return precision, recall
 
 
 def cohen_kappa(human: Sequence[str], judge: Sequence[str]) -> float:
     """kappa = (p_o - p_e) / (1 - p_e). Raise ValueError when undefined (p_e == 1):
     a constant judge has no signal and must FAIL calibration, not pass on a technicality."""
-    # TODO M2
-    raise NotImplementedError
+    c = confusion(human, judge)
+    n = c["tp"] + c["fp"] + c["fn"] + c["tn"]
+    if n == 0:
+        raise ValueError("kappa undefined: no items")
+    p_o = (c["tp"] + c["tn"]) / n                  # tỉ lệ đồng ý thực tế
+    h_fail = (c["tp"] + c["fn"]) / n               # P(người nói FAIL)
+    j_fail = (c["tp"] + c["fp"]) / n               # P(judge nói FAIL)
+    p_e = h_fail * j_fail + (1 - h_fail) * (1 - j_fail)   # đồng ý do may mắn
+    if p_e >= 1.0:
+        raise ValueError("kappa undefined: p_e == 1 (constant labels, no signal)")
+    return (p_o - p_e) / (1 - p_e)
 
 
 def rogan_gladen(observed_rate: float, sensitivity: float, specificity: float) -> float:
     """Correct an observed failure rate for judge error; clip to [0, 1]."""
-    # TODO M2: (p_obs + spec - 1) / (sens + spec - 1)
-    raise NotImplementedError
+    denom = sensitivity + specificity - 1
+    if denom <= 0:
+        raise ValueError("judge is no better than chance (sens + spec <= 1)")
+    corrected = (observed_rate + specificity - 1) / denom
+    return max(0.0, min(1.0, corrected))
 
 
 def paired_bootstrap(a: Sequence[float], b: Sequence[float], *, n_resamples: int = 1000,
