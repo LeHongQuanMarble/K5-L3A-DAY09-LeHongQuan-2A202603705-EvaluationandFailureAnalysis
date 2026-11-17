@@ -1,6 +1,6 @@
 # DEMO — Lab 9 · Evaluation & Failure Analysis (LogiX-VN)
 
-**Người trình bày:** Lê Hồng Quân · **Thời lượng:** ~7 phút + 3 phút hỏi đáp
+**Người trình bày:** Lê Hồng Quân · **Thời lượng:** ~8 phút + 3 phút hỏi đáp
 **Bản mô phỏng trực quan:** mở `DEMO.html` trong trình duyệt (phím → / ← để chuyển bước, Space để tự chạy).
 **PR:** https://github.com/LeHongQuanMarble/K5-L3A-DAY09-LeHongQuan-2A202603705-EvaluationandFailureAnalysis/pull/1
 
@@ -59,7 +59,7 @@ python -m pytest -q -m student -o addopts= -k "lab9 and not advanced"     # 14 p
 python -m lab9.eval --shape seeded_regression --out /tmp/demo.json
 ```
 **Chỉ vào:** `reply_matches_ledger 0.7857`.
-**Nói:** Em tự thiết kế metric `reply_matches_ledger` cho FM-08: tách số tiền trong reply, so với ledger. Trên `seeded_regression`, ba grader M3 bắt 20/25 trial lỗi (80%), báo nhầm 0/70 trên `fixed`. Đặc biệt nó bắt được E-008 — reply nói 35.000đ, ledger 20.000đ — mà **grader gốc của Lab 8 cho PASS**.
+**Nói:** Em tự thiết kế hai metric: `reply_matches_ledger` cho FM-08 (tách số tiền trong reply, so với ledger) và `proposal_correct` cho FM-04/05 (số đề xuất cho host). Trên `seeded_regression`, grader của em bắt 25/25 trial lỗi (`lab9.mutation --detect`: 100%), báo nhầm 0/70 trên `fixed`. Lần đầu chỉ 75% vì E-013 lọt — em đọc trace, thêm `proposal_correct`, không nới ngưỡng. Đặc biệt nó bắt được E-008 — reply nói 35.000đ, ledger 20.000đ — mà **grader gốc của Lab 8 cho PASS**.
 
 ## Cảnh 6 — M4: cổng CI với paired bootstrap (90s) ⭐
 ```bash
@@ -68,20 +68,29 @@ python -m lab9.gate --pr reports/eval_seeded_regression.json --baseline reports/
 ```
 **Kết quả:**
 - `fixed` → `exit 0 — merge`
-- `seeded_regression` → `pass_rate 0.7143 Δ -0.271 CI [-0.500, -0.057] BLOCK` → `exit 1 — blocked: refund_amount_correct, pass_rate, reply_matches_ledger`
+- `seeded_regression` → `pass_rate 0.7143 Δ -0.271 CI [-0.500, -0.057] BLOCK` → `exit 1 — blocked: refund_amount_correct, proposal_correct, pass_rate, reply_matches_ledger`
 
 **Nói:** Chỉ 14 item nên Δ −0.27 có thể là may rủi. Paired bootstrap so *từng item với chính nó* trên hai bản, lấy mẫu lại 1000 lần → CI 95%. CI nằm **hoàn toàn dưới 0** ⇒ chắc chắn tệ hơn ⇒ chặn. Khớp đúng tham chiếu của giảng viên.
 
-## Cảnh 7 — CI trên GitHub (30s)
+## Cảnh 7 — Advanced/Expert: slice, pass^5, chống gian lận (75s)
+```bash
+python -m lab9.mutation --spec config/metric_spec_v2.yaml --aa 66,77,88,99,110       # A/A: Δ = 0
+python -m lab9.mutation --spec config/metric_spec_v2.yaml --baseline reports/baseline_v2.json
+python -m lab9.traps --pr reports/eval_slice_regression.json --baseline reports/baseline_v2.json --spec config/metric_spec_v2.yaml
+```
+**Kết quả:** `mutation score 3/3 · false alarms 0` · 4/4 trap `blocked` · `exit 0 — the gate blocked every public trap`.
+**Nói:** Eval set v2 có 28 item (thêm 14 item tấn công, FM-09 mới). `slice_regression` có pass_rate trung bình 0.9357 — trên sàn — nhưng slice `money_movement` chỉ 0.85 ⇒ chặn. `flaky_regression` lỗi 1/5 seed: trung bình vẫn đẹp, nhưng `pass_hat_5` = 0.57 ⇒ chặn; sàn 0.85 chọn từ A/A (Δ = 0). Gate còn từ chối report bị "làm đẹp": NaN, bỏ dòng fail, chọn seed đẹp, nới spec. Giới hạn: lỗi 1/3 seed không bắt ổn định với 5 seed — em ghi vào eval card, không hạ ngưỡng.
+
+## Cảnh 8 — CI trên GitHub (30s)
 Mở PR #1 → tab **Checks**: `detect` ✓ · `eval-gate` ✓ · `eval-gate-v2` (bỏ qua, chưa có baseline v2).
 **Nói:** Mỗi PR tự chạy test, check eval set, rồi gate trên `swarm`, `fixed`, `seeded_regression`. Bản tệ không thể merge.
 
-## Cảnh 8 — Giới hạn & kết (30s)
+## Cảnh 9 — Giới hạn & kết (30s)
 **Nói (trích `docs/eval_card.md`):**
 - MockLLM tất định — LLM thật sẽ có nhiễu, cần đo A/A.
-- Chỉ 14 item: CI rộng, chỉ bắt hồi quy lớn; lỗi xảy ra 1/5 seed không bắt ổn định.
+- Chỉ 14 item (v1) / 28 item (v2): CI rộng; lỗi 1/3 seed không bắt ổn định với 5 seed.
 - Judge replay trên CSV công khai, chưa có held-out.
-- Hướng tiếp: slice gate `money_movement`, `pass_hat_5`, chống gian lận eval (M5–M7).
+- Integrity không phát hiện report bị đổi giá trị từng dòng rồi tính lại → CI phải tự chạy lại eval.
 
 ---
 
@@ -91,7 +100,9 @@ Mở PR #1 → tab **Checks**: `detect` ✓ · `eval-gate` ✓ · `eval-gate-v2`
 | Vì sao không dùng judge cho tiền? | Judge không thấy ledger; đã đo: helpful R = 0.30. Tiền và approval luôn chấm bằng code. |
 | Vì sao `approval_bypass = 0` trên `seeded_regression`? | Ở C-007 host đã từ chối nên không đồng nào đi ra; lỗi là reply nói dối → `reply_matches_ledger` bắt. |
 | Sao không chỉ so trung bình? | Δ trên 14 item có thể do may rủi; CI paired bootstrap cho biết chênh lệch có thật không. |
-| E-013 bị grader M3 bỏ sót? | Outcome tình cờ đúng (từ chối, 0đ), chỉ `proposal` trung gian sai; `pass_rate` (grader Lab 8) bắt được. |
+| E-013 từng bị bỏ sót? | Outcome tình cờ đúng (từ chối, 0đ), chỉ số đề xuất sai; em thêm grader `proposal_correct` → detection 75% → 100%. |
+| Sàn `pass_hat_5` chọn thế nào? | Từ A/A: cùng agent, hai bộ seed, Δ = 0 trên MockLLM; sàn 0.85 dưới baseline 0.8929, trên flaky 0.5714. Với LLM thật phải đo lại dải nhiễu. |
+| Trap nào có thể còn lọt? | Report đổi giá trị từng dòng rồi tính lại metric — cần CI tự chạy eval, không tin report nộp lên. |
 | Gate fail thì làm gì? | Tái hiện bằng `lab9.trace_case`, sửa agent; không nới ngưỡng, không sửa report (ratchet). |
 
 ## Phương án dự phòng

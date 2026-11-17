@@ -93,6 +93,24 @@ class DbFactKept(Evaluator[Any, Trial]):
         return EvaluationReason(value=not bad, reason=f"{len(bad)} override event(s)" if bad else None)
 
 
+@dataclass
+class ProposalCorrect(Evaluator[Any, Trial]):
+    """FM-04 / FM-05 at the decision step. Capability, outcome level: the amount the agent PROPOSED
+    to the host must equal the label's proposal_amount. Catches an agent that pre-deducts or
+    re-computes the quote even when the host's own checks happen to land the ledger on the right
+    number (e.g. pre-deducted to 0 on a claim the host would deny anyway)."""
+
+    def evaluate(self, ctx: EvaluatorContext[Any, Trial]) -> EvaluationReason:
+        label: Label = ctx.expected_output or {}
+        if "proposal_amount" not in label:
+            return EvaluationReason(value=True, reason="label has no proposal_amount")
+        got = int(ctx.output["result"].get("proposal_amount") or 0)
+        want = int(label["proposal_amount"] or 0)
+        if got == want:
+            return EvaluationReason(value=True)
+        return EvaluationReason(value=False, reason=f"proposed {got} != label {want}")
+
+
 # Order matters only for display. Names here are the metric ids in config/metric_spec.yaml.
 GRADERS: dict[str, type[Evaluator]] = {
     "pass_rate": TrialPass,
@@ -101,4 +119,5 @@ GRADERS: dict[str, type[Evaluator]] = {
     "refund_amount_correct": RefundAmountCorrect,
     "db_fact_kept": DbFactKept,
     "reply_matches_ledger": ReplyMatchesLedger,
+    "proposal_correct": ProposalCorrect,
 }
