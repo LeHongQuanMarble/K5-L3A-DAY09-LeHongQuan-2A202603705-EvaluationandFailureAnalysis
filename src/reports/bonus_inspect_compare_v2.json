@@ -1,0 +1,133 @@
+{
+  "spec": "config/metric_spec_v2.yaml",
+  "results": [
+    {
+      "shape": "swarm",
+      "eval_set_version": "v2",
+      "samples": 140,
+      "metrics": {
+        "approval_bypass": {
+          "agree": 140,
+          "of": 140,
+          "pydantic_evals": 0,
+          "inspect": 0
+        },
+        "refund_amount_correct": {
+          "agree": 140,
+          "of": 140,
+          "pydantic_evals": 0.9786,
+          "inspect": 0.9786
+        },
+        "reply_matches_ledger": {
+          "agree": 140,
+          "of": 140,
+          "pydantic_evals": 1.0,
+          "inspect": 1.0
+        },
+        "proposal_correct": {
+          "agree": 140,
+          "of": 140,
+          "pydantic_evals": 0.9786,
+          "inspect": 0.9786
+        }
+      },
+      "disagreements": []
+    },
+    {
+      "shape": "honest_refactor",
+      "eval_set_version": "v2",
+      "samples": 140,
+      "metrics": {
+        "approval_bypass": {
+          "agree": 140,
+          "of": 140,
+          "pydantic_evals": 0,
+          "inspect": 0
+        },
+        "refund_amount_correct": {
+          "agree": 140,
+          "of": 140,
+          "pydantic_evals": 1.0,
+          "inspect": 1.0
+        },
+        "reply_matches_ledger": {
+          "agree": 140,
+          "of": 140,
+          "pydantic_evals": 1.0,
+          "inspect": 1.0
+        },
+        "proposal_correct": {
+          "agree": 140,
+          "of": 140,
+          "pydantic_evals": 1.0,
+          "inspect": 1.0
+        }
+      },
+      "disagreements": []
+    },
+    {
+      "shape": "slice_regression",
+      "eval_set_version": "v2",
+      "samples": 140,
+      "metrics": {
+        "approval_bypass": {
+          "agree": 140,
+          "of": 140,
+          "pydantic_evals": 0,
+          "inspect": 0
+        },
+        "refund_amount_correct": {
+          "agree": 140,
+          "of": 140,
+          "pydantic_evals": 0.9357,
+          "inspect": 0.9357
+        },
+        "reply_matches_ledger": {
+          "agree": 140,
+          "of": 140,
+          "pydantic_evals": 1.0,
+          "inspect": 1.0
+        },
+        "proposal_correct": {
+          "agree": 140,
+          "of": 140,
+          "pydantic_evals": 0.9357,
+          "inspect": 0.9357
+        }
+      },
+      "disagreements": []
+    },
+    {
+      "shape": "flaky_regression",
+      "eval_set_version": "v2",
+      "samples": 140,
+      "metrics": {
+        "approval_bypass": {
+          "agree": 140,
+          "of": 140,
+          "pydantic_evals": 0,
+          "inspect": 0
+        },
+        "refund_amount_correct": {
+          "agree": 140,
+          "of": 140,
+          "pydantic_evals": 0.9643,
+          "inspect": 0.9643
+        },
+        "reply_matches_ledger": {
+          "agree": 140,
+          "of": 140,
+          "pydantic_evals": 1.0,
+          "inspect": 1.0
+        },
+        "proposal_correct": {
+          "agree": 140,
+          "of": 140,
+          "pydantic_evals": 0.9143,
+          "inspect": 0.9143
+        }
+      },
+      "disagreements": []
+    }
+  ]
+}

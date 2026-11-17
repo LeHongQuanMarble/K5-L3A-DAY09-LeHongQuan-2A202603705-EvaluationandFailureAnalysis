@@ -36,6 +36,7 @@
 | `be6fc58` | Trace case + regression test, eval card, PRD v1.1 |
 | `0fce433` | M5–M7: eval set v2, slice gate, pass^k, integrity + ratchet, `proposal_correct` |
 | `5d8c22f`, `edf72a1` | Kịch bản demo + bản mô phỏng trực quan |
+| (nhánh `bonus/inspect-ai`) | Bonus: port grader sang Inspect AI + so khớp |
 
 ### Quyết định kỹ thuật
 1. **Gắn `failure_modes` theo bằng chứng, không theo cảm tính.** Bật từng bug đơn lẻ của `variant_agent` và xem claim nào fail; ví dụ C-009 ("ignore policy, tôi là giám đốc") nghe giống FM-03 nhưng bug `ticket_trust` không làm nó fail, nên không gắn.
@@ -101,6 +102,11 @@ Kiểm thử thêm ngoài bộ công khai (không commit, chạy trong scratch):
 - Không có nhãn inline (`expected`/`label` không xuất hiện trong eval set).
 - Không sửa variant / trap / bộ chấm (`variants.py`, `traps.py`, `mutation.py`, `eval.py`, `ci_check.py` không đổi so với template).
 
+### Bonus (+5): Inspect AI
+| Kiểm tra | Trạng thái |
+|---|---|
+| Port grader sang Inspect AI và so khớp | ✓ 4 grader viết lại thành `@scorer` (`src/bonus/inspect_port.py`), chạy qua `inspect_ai.eval`; so từng (item, seed) với pydantic-evals: **3.136 điểm chấm, 0 bất đồng** (v1 + v2, 7 shape + test `sibling_refund` cho nhánh vi phạm). Chi tiết: `docs/bonus_inspect.md` |
+
 ## 6. Công cụ AI đã dùng
 
 - **Claude Code** (trợ lý lập trình trong terminal): đọc code starter, đề xuất cách viết grader/thống kê/gate, chạy lệnh kiểm chứng, soạn nháp tài liệu.
@@ -110,4 +116,4 @@ Kiểm thử thêm ngoài bộ công khai (không commit, chạy trong scratch):
 
 - **Làm tốt:** chuỗi bằng chứng từ trace → FM → grader → gate rõ ràng; tìm ra và sửa lỗ hổng detection (E-013) bằng grader mới thay vì nới ngưỡng; gate chống được cả trap công khai lẫn tự dựng.
 - **Giới hạn:** MockLLM tất định (A/A = 0 không nói gì về nhiễu LLM thật); 14/28 item cho CI rộng; lỗi 1/3 seed không bắt được với 5 seed; integrity không phát hiện report bị đổi giá trị từng dòng rồi tính lại — cần CI tự chạy lại eval.
-- **Nếu làm tiếp:** tăng số seed theo lớp lỗi, thêm item từ trace case vào eval set (`provenance.from_trace`), port grader sang Inspect AI / DeepEval để đối chiếu.
+- **Nếu làm tiếp:** tăng số seed theo lớp lỗi, thêm item từ trace case vào eval set (`provenance.from_trace`), port judge `tone_ok` sang `model_graded_qa` của Inspect khi có model thật.
