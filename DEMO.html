@@ -236,7 +236,7 @@
   </section>
   <section class="window preview" aria-label="Preview">
     <div class="titlebar"><div class="lights"><i></i><i></i><i></i></div><div class="wtitle" id="ptitle">Preview</div></div>
-    <div class="toolbar"><span class="pill" id="pstep">1 / 11</span><span id="pfile">README.md</span></div>
+    <div class="toolbar"><span class="pill" id="pstep">1 / 12</span><span id="pfile">README.md</span></div>
     <div class="body" id="pbody"></div>
   </section>
 </main>
@@ -556,6 +556,41 @@
         </div>`
     },
     {
+      key: "Bonus", color: "#5856d6", file: "src/bonus/inspect_port.py", title: "Bonus · Port grader sang Inspect AI",
+      say: "Em viết lại độc lập 4 grader thành scorer của Inspect AI, không import code cũ, và chạy agent qua vòng eval của Inspect — không cần API key. So từng item và seed với pydantic-evals: 3.136 điểm chấm, 0 bất đồng. Em thêm test với bug sibling_refund để kiểm cả nhánh vi phạm: cả hai cùng đếm 4.",
+      cmds: [
+        { cmd: "python -m bonus.inspect_port", out: [
+          P("shape                metric                 pydantic-evals   inspect     agree", "dim"),
+          P("swarm                refund_amount_correct          0.9857    0.9857   70/70", "ok"),
+          P("fixed                proposal_correct                  1.0       1.0   70/70", "ok"),
+          P("seeded_regression    refund_amount_correct          0.8571    0.8571   70/70", "ok"),
+          P("seeded_regression    reply_matches_ledger           0.7857    0.7857   70/70", "ok"),
+          P("seeded_regression    proposal_correct               0.7857    0.7857   70/70", "ok"),
+          P("wrote reports/bonus_inspect_compare.json", "dim"),
+          P("exit 0 — Inspect AI and pydantic-evals agree on every (item, seed) for every ported grader", "ok hl"),
+        ]},
+        { cmd: "python -m pytest -q -o addopts= tests/test_bonus_inspect.py", out: [
+          P("."), P("1 passed in 4.72s", "ok"),
+        ]},
+      ],
+      preview: () => `
+        <div class="kicker">Bonus +5 · Inspect AI 0.3.290</div><h2>Hai cài đặt, một kết quả</h2>
+        <p class="lead">4 grader viết lại thành <code>@scorer</code>, chạy qua <code>inspect_ai.eval()</code> với <code>mockllm/model</code>.</p>
+        <table class="t">
+          <tr><th>pydantic-evals (lab9)</th><th>Inspect AI</th></tr>
+          <tr><td><code>Case("E-001@11")</code></td><td><code>Sample(id="E-001@11")</code></td></tr>
+          <tr><td>task <code>run_one</code> → Trial</td><td><code>@solver run_shape</code> → <code>state.store</code></td></tr>
+          <tr><td><code>Evaluator</code> → <code>EvaluationReason</code></td><td><code>@scorer</code> → <code>Score</code></td></tr>
+        </table>
+        <table class="t" style="margin-top:12px">
+          <tr><th>Eval set</th><th>Shape</th><th>Khớp</th></tr>
+          <tr><td>v1</td><td>swarm · fixed · seeded_regression</td><td class="num"><span class="tag pass">840/840</span></td></tr>
+          <tr><td>v2</td><td>swarm · honest_refactor · slice · flaky</td><td class="num"><span class="tag pass">2240/2240</span></td></tr>
+          <tr class="focus"><td>test</td><td>sibling_refund · approval_bypass 4 = 4</td><td class="num"><span class="tag pass">56/56</span></td></tr>
+        </table>
+        <div class="banner">3.136 điểm chấm · 0 bất đồng</div>`
+    },
+    {
       key: "CI", color: "#34c759", file: "Pull request #1 · Checks", title: "CI trên Pull Request",
       say: "Mỗi PR tự chạy: smoke, test học viên, check eval set, rồi gate trên swarm, fixed và seeded_regression. Job v2 chạy 12 test nâng cao, check eval set v2 và scorecard mutation 3 trên 3. Bản tệ không thể merge.",
       cmds: [{ cmd: "gh pr checks 1", out: [
@@ -686,7 +721,7 @@
   const autoBtn = mk("▶", "ctrl", () => setAuto(!auto), "Tự chạy");
   dock.appendChild(Object.assign(document.createElement("div"), { className: "sep" }));
   scenes.forEach((s, i) => {
-    const b = mk(`<div>${s.key}<span>${["Bối cảnh", "Môi trường", "Taxonomy", "Judge", "Grader", "Gate", "Slice", "pass^k", "Integrity", "PR", "Kết"][i]}</span></div>`, "scene", () => { setAuto(false); play(i); }, s.title);
+    const b = mk(`<div>${s.key}<span>${["Bối cảnh", "Môi trường", "Taxonomy", "Judge", "Grader", "Gate", "Slice", "pass^k", "Integrity", "Inspect", "PR", "Kết"][i]}</span></div>`, "scene", () => { setAuto(false); play(i); }, s.title);
     b.style.background = `linear-gradient(160deg, ${s.color}, ${s.color}cc)`;
   });
   dock.appendChild(Object.assign(document.createElement("div"), { className: "sep" }));

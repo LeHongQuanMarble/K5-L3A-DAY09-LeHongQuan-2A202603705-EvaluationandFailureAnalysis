@@ -1,6 +1,6 @@
 # DEMO — Lab 9 · Evaluation & Failure Analysis (LogiX-VN)
 
-**Người trình bày:** Lê Hồng Quân · **Thời lượng:** ~11 phút (Core ~7 phút + Nâng cao ~4 phút) + 3 phút hỏi đáp
+**Người trình bày:** Lê Hồng Quân · **Thời lượng:** ~12 phút (Core ~7 phút + Nâng cao ~4 phút + Bonus ~45s) + 3 phút hỏi đáp
 **Bản mô phỏng trực quan:** mở `DEMO.html` trong trình duyệt (phím → / ← để chuyển bước, Space để tự chạy).
 **PR:** https://github.com/LeHongQuanMarble/K5-L3A-DAY09-LeHongQuan-2A202603705-EvaluationandFailureAnalysis/pull/1
 
@@ -128,11 +128,26 @@ python -m lab9.mutation --spec config/metric_spec_v2.yaml --baseline reports/bas
 
 **Nói:** Một gate chỉ so số với ngưỡng sẽ bị qua mặt bởi chính report nó đọc. `integrity_check` kiểm: số dòng, dòng trùng, tập (item, seed) khớp baseline, grader không crash, metric tổng hợp khớp tính lại từ từng dòng, slice tag không bị đổi, và **ratchet**: cùng eval-set version thì ngưỡng chỉ được chặt hơn. Em tự thử thêm 8 trap kiểu ẩn (dòng trùng, run xanh nhưng có evaluator_failures, sửa tay metric…) — đều bị chặn. Giới hạn trung thực: lỗi chỉ xảy ra 1/3 seed (`rare`) cho metric **y hệt** baseline → không bắt được với 5 seed; em ghi vào eval card, **không hạ ngưỡng**.
 
-## Cảnh 10 — CI trên GitHub (30s)
+## Cảnh 10 — Bonus: port grader sang Inspect AI (45s)
+```bash
+pip install -r requirements-bonus.txt            # inspect-ai==0.3.290 (cài sẵn trước giờ demo)
+python -m bonus.inspect_port                      # ~20s: swarm, fixed, seeded_regression
+```
+**Kết quả:**
+```
+shape                metric                 pydantic-evals   inspect     agree
+seeded_regression    refund_amount_correct          0.8571    0.8571   70/70
+seeded_regression    reply_matches_ledger           0.7857    0.7857   70/70
+seeded_regression    proposal_correct               0.7857    0.7857   70/70
+exit 0 — Inspect AI and pydantic-evals agree on every (item, seed) for every ported grader
+```
+**Nói:** Em viết lại độc lập 4 grader thành `@scorer` của Inspect AI — không import code cũ — và chạy agent qua vòng `eval()` của Inspect (không cần API key, dùng `mockllm/model`). So từng (item, seed) với pydantic-evals: **3.136 điểm chấm, 0 bất đồng** trên v1 và v2. Vì không variant công khai nào làm `approval_bypass` bật, em thêm test với bug `sibling_refund`: cả hai cùng đếm 4 vi phạm. Port có giá trị ở chỗ kiểm tra chéo *cách đọc trace* (reply lấy từ event cuối, "35.000đ" → 35000, không có reply thì pass). Chi tiết: `docs/bonus_inspect.md`.
+
+## Cảnh 11 — CI trên GitHub (30s)
 Mở PR #1 → tab **Checks**: `detect` ✓ · `eval-gate` ✓ · `eval-gate-v2` ✓.
 **Nói:** Mỗi PR tự chạy test, check eval set, rồi gate trên `swarm`, `fixed`, `seeded_regression`; job v2 chạy 12 test nâng cao, `evalset --v2` và scorecard `mutation` (3/3, 0 báo nhầm). Bản tệ không thể merge.
 
-## Cảnh 11 — Giới hạn & kết (30s)
+## Cảnh 12 — Giới hạn & kết (30s)
 **Nói (trích `docs/eval_card.md`):**
 - MockLLM tất định — LLM thật sẽ có nhiễu, cần đo A/A.
 - Chỉ 14 item (v1) / 28 item (v2): CI rộng; lỗi 1/3 seed không bắt ổn định với 5 seed.
@@ -149,6 +164,7 @@ Mở PR #1 → tab **Checks**: `detect` ✓ · `eval-gate` ✓ · `eval-gate-v2`
 | Sao không chỉ so trung bình? | Δ trên 14 item có thể do may rủi; CI paired bootstrap cho biết chênh lệch có thật không. |
 | E-013 từng bị bỏ sót? | Outcome tình cờ đúng (từ chối, 0đ), chỉ số đề xuất sai; em thêm grader `proposal_correct` → detection 75% → 100%. |
 | Sàn `pass_hat_5` chọn thế nào? | Từ A/A: cùng agent, hai bộ seed, Δ = 0 trên MockLLM; sàn 0.85 dưới baseline 0.8929, trên flaky 0.5714. Với LLM thật phải đo lại dải nhiễu. |
+| Port sang Inspect để làm gì khi kết quả giống hệt? | Hai cài đặt độc lập cùng đọc một trace: khớp 3.136/3.136 chứng minh cách đọc trace (reply, ledger, proposal) là đúng; Inspect còn cho log từng sample để review. |
 | Trap nào có thể còn lọt? | Report đổi giá trị từng dòng rồi tính lại metric — cần CI tự chạy eval, không tin report nộp lên. |
 | Gate fail thì làm gì? | Tái hiện bằng `lab9.trace_case`, sửa agent; không nới ngưỡng, không sửa report (ratchet). |
 
